@@ -1,0 +1,334 @@
+<HTML
+><HEAD
+><TITLE
+>Themes and Configuration</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.52"><LINK
+REL="HOME"
+TITLE="fancylogin documentation"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Compiling and Installing fancylogin"
+HREF="compiling.html"><LINK
+REL="NEXT"
+TITLE="fancylogin License"
+HREF="license.html"></HEAD
+><BODY
+CLASS="SECTION"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>fancylogin documentation</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="compiling.html"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="license.html"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECTION"
+><H1
+CLASS="SECTION"
+><A
+NAME="CONFIGURATION"
+>Themes and Configuration</A
+></H1
+><P
+>fancylogin provides a lot of options to set the look and feel of your 
+personal login screen.</P
+><P
+>The login's look is controled by one file:
+<P
+></P
+><UL
+><LI
+><P
+>  <TT
+CLASS="FILENAME"
+>/etc/default.flt</TT
+></P
+></LI
+></UL
+></P
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="SIGNON.DEFS"
+>default.flt</A
+></H2
+><P
+>  default.flt is a file in the fancylogin theme format. These files can be
+  created via <TT
+CLASS="FILENAME"
+>fltcreate</TT
+>, an interactive program to
+  create fancylogin themes from ANSI files.
+  </P
+></DIV
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="AEN91"
+>ANSI files</A
+></H2
+><P
+>  ANSI files are ASCII text files with ANSI escape codes inside. These
+  files can be created and modified with ANSI editors. The preferred editor
+  of the fancylogin crew is Tetradraw. Tetradraw can be obtained from 
+  <A
+HREF="http://tentacle.dhs.org/"
+TARGET="_top"
+>http://tentacle.dhs.org</A
+>.
+  </P
+></DIV
+><DIV
+CLASS="SECTION"
+><H2
+CLASS="SECTION"
+><A
+NAME="MORE-CONFIGFILES"
+>More Configuration files</A
+></H2
+><P
+>  </P
+><DIV
+CLASS="SECTION"
+><H3
+CLASS="SECTION"
+><A
+NAME="USERTTY"
+>/etc/usertty</A
+></H3
+><P
+>  This is the standard usertty file, as used with HP-UX logins. As Peter
+  Orbaek's port of the HP-UX login to Linux is quite popular, you will
+  propably find manpages, sample files, etc. delivered with your Linux
+  distribution (e.g. TurboLinux).
+  </P
+></DIV
+><DIV
+CLASS="SECTION"
+><H3
+CLASS="SECTION"
+><A
+NAME="LOGIN.LOGGING"
+>/etc/login.logging</A
+></H3
+><P
+>  Let's have a look at an example login.logging file:
+  <DIV
+CLASS="EXAMPLE"
+><P
+><B
+>Example 1. Example file</B
+></P
+><TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="PROGRAMLISTING"
+>FATAL 1       FILE /var/log/login/FATAL1.log
+FATAL 2       SYSLOG 1002
+NONFATAL 1    FILE /var/log/login/NONFATAL1.log
+NONFATAL 2    SYSLOG 1002
+NONFATAL 3    SYSLOG 1003
+FAILED 3      SYSLOG 2003
+FAILED 5      FILE /var/log/login/FIVEWRONG.log
+FAILED 10     SYSLOG 2010
+GRANTED 0     FILE /var/log/login/ROOTLOGINs.log
+GRANTED 501   SYSLOG 2501
+GRANTED 9999  FILE /var/log/login/allgranted.log
+DENIED 9999   FILE /var/log/login/alldenied.log
+DENIED 9998   FILE /var/log/login/UNKNOWN.log
+DENIED 0      FILE /var/log/login/ROOTDENIED.log
+  </PRE
+></TD
+></TR
+></TABLE
+></DIV
+>
+  </P
+><P
+>  Each line in this file consists of four fields,
+  seperated by spaces or tabs. The first two fields
+  belong to the reason for logging, and the other
+  two fields to where the log should be logged to.
+  </P
+><P
+>  In the first line we've got
+  <TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="PROGRAMLISTING"
+>  FATAL 1 FILE /var/log/login/FATAL1.log
+  </PRE
+></TD
+></TR
+></TABLE
+>
+  which means an error of the type FATAL (which are
+  fatal errors). The next field is the Argument to
+  the type. For the type FATAL the arguments are
+  <TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="PROGRAMLISTING"
+>  1: SYSTEM-ERROR
+  2: HARDWARE-ERROR
+  3: CONFIGURATION-ERROR
+  </PRE
+></TD
+></TR
+></TABLE
+>
+  so FATAL 1 means FATAL SYSTEM-ERRORS. FATAL SYSTEM ERRORS
+  are logged to FILE /var/log/login/FATAL1.log. This means...
+  </P
+><P
+>  Errors can also be logged with SYSLOGD. To log something
+  using SYSLOG the third field is SYSLOG instead of FILE.
+  The first Argument to syslog is not the filename, but the
+  syslog-facility-id in decimal notation. For further information
+  on syslog see syslog(2), syslog(3), syslogd(9), and
+  syslog.conf(5).
+  </P
+><P
+>  And here is an overview of possible values for FIELD1, and
+  possible arguments
+  <TABLE
+BORDER="0"
+BGCOLOR="#E0E0E0"
+WIDTH="100%"
+><TR
+><TD
+><PRE
+CLASS="PROGRAMLISTING"
+>FATAL    1 : FATAL SYSTEM ERROR
+         2 : FATAL HARDWARE ERROR
+         3 : FATAL CONFIGURATION ERROR
+
+NONFATAL 1 : NONFATAL SYSTEM ERROR
+         2 : NONFATAL HARDWARE ERROR
+         3 : NONFATAL CONFIGURATION ERROR
+
+FAILED   n : After "n" failed logins in one session this log is put out.
+
+GRANTED uid : Is put out if user with uid "uid" logs on.
+              a uid of 9999 means ALL users.
+
+DENIED uid :  Is put out if user with uid "uid" fails to log on.
+              a uid of 9999 means ALL users,
+              a uid of 9998 means UNKNOWN users.
+  </PRE
+></TD
+></TR
+></TABLE
+>
+  </P
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="compiling.html"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="license.html"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Compiling and Installing fancylogin</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>fancylogin License</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

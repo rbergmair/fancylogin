@@ -1,5 +1,5 @@
                        -----------------------------
-                            fancylogin 0.99.6
+                            fancylogin 0.99.7
 
                            basic installation
                                instructions
@@ -7,84 +7,130 @@
 
 
 
---------------------------
+-----------------------------------------------------
 STEP 1: CHECK DEPENDENCIES
---------------------------
+-----------------------------------------------------
 
 fancylogin needs the following libraries:
-
 - libcrypt
-- libncurses
+
+the fancylogin-theme-creator fltcreate needs:
+- libreadline
 
 
 
--------------------------
+-----------------------------------------------------
 STEP 2: MODIFY Makefile
--------------------------
+-----------------------------------------------------
 
-look at the Makefile and change whatever you
-like, especially have a look at the first 7 lines.
+Have a look at the Makefiles and modify them for
+your system (espectially the first few lines).
+If you don't know anything about "make" and "Makefiles"
+just forget about that.
 
 
 
-------------------------------------------
-STEP 3: MODIFY config.h AND environment.h
-------------------------------------------
+-----------------------------------------------------
+STEP 3: MODIFY Precompiler-Options
+-----------------------------------------------------
 
 have a look at config.h and environment.h,
 the configuration options are explained in
-the files, themselves.
+the files. If you're very lazy you can also
+skip this step, but you better don't!
 
 
 
 ------------------------------------------
-STEP 4: COMPILE THE LOGIN
+STEP 4: COMPILE THE sourcedistribution
 ------------------------------------------
 
-go to the directory ./login and make all
-by doing "make clean all install". this
-installs the binary file "fancylogin" to
-your bindirectory.
+you can compile everything by entering
+"make all" in the root directory of the
+sourcedistribution.
 
 
 
------------------------------
-STEP 5: COMPILE THE MINGETTY
------------------------------
+------------------------------------------
+STEP 5: CONFIGURE THE login
+------------------------------------------
 
-now you have to tell your getty to execute
-/bin/fancylogin instead of /bin/login.
-you can use the mingetty-modification, I
-added: just make all by doing "make all install".
-This installs the file /sbin/mingetty.fancylogin.
+once you should have a look at the
+documentation to configure fancylogin
+the way you want, but "make sampleconf"
+should get you started with a Welcome2L-
+screeen and some standard-configuration,
+which you can modify when you have time.
+You ALSO HAVE TO DO THAT, IF YOU ALREADY
+HAD A 0.99.6-CONFIGURATION, because
+the configuration has changed!
+
+
+
+------------------------------------------
+STEP 6: TRY OUT fancylogin
+------------------------------------------
+
+go to the directory ./login and invoke
+fancylogin from command-line (when you are
+logged in as superuser). Everything should
+work already!! You should be able to login,
+and when you log out again, you are on
+the comand-line again.
+
+
+
+------------------------------------------
+STEP 7: INSTALL fancylogin
+------------------------------------------
+
+if everything went okay when trying out,
+you can install fancylogin to your system.
+just enter "make install" in the
+distribution-root.
 
 
 
 ----------------------------
-STEP 6: MODIFY /etc/inittab
+STEP 8: MODIFY /etc/inittab
 ----------------------------
 
-now you have to tell init to execute /sbin/mingetty.fancylogin
-instead of /sbin/mingetty or /sbin/getty, or whatever you
-used before. Open the file /etc/inittab, and replace a line,
-that looks like
+Okay, now it's getting a little bit complicated,
+I will try to explain the startup-process, so you
+know what you are doing, when modifying your
+/etc/inittab-file. When the kernel boots up and
+mounts your root partition it executes your
+init-program, that can be configured using the file
+/etc/inittab. On a normal (non-fancylogin)-system
+init runs the program "mingetty" on every console.
+mingetty sets up the virtual console, and then
+executes the program /bin/login. In our case we
+don't want to execute /bin/login, because we want
+/bin/fancylogin to be executed instead. "make install"
+should have compiled my modification of mingetty
+which executes /bin/fancylogin instead. This program
+is installed as /sbin/mingetty.fancylogin. So you
+have to tell your init to execute /sbin/mingetty.fancylogin
+instead of /sbin/mingetty. You can do this by modifying
+some lines in /etc/inittab that look like
 
 4:2345:respawn:/sbin/mingetty tty4
+                     ~~~~~~~~
 
-or something like that by
+instead you should have
 
 4:2345:respawn:/sbin/mingetty.fancylogin tty4
+                     ~~~~~~~~~~~~~~~~~~~
 
-for further information on /etc/inittab look at inittab(5)
+in your inittab.
+Maybe it's a good idea to leave the normal mingetty
+running on one terminal, so if anything happens you
+can still login.
 
 
-
------------------------------
-STEP 7: CONFIGURE FANCYLOGIN
------------------------------
-
-you could copy the files from ./doc/samples to
-/etc/ to get a basic configuration. I refer
-to the fancylogin-documentation you will find
-under ./doc/doc/CONFIGURATION for further
-information.
+-----------------------------------------------------
+CONGRATULATIONS!
+You have just successfully installed fancylogin. The
+next time you start up your system you should see a
+Welcome2L screen!
+-----------------------------------------------------

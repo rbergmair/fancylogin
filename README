@@ -1,4 +1,4 @@
-fancylogin 0.99.6
+fancylogin 0.99.7
 
 
 **************************************************************
@@ -12,7 +12,7 @@ W E L C O M E   T O   F A N C Y - L O G I N
    /V\     +++++++++++++
   /   \         +            please log in:
  /(   )\        +            ########################
-  ^`~'          +
+  ^`~'^         +
                 +            password:
                 +            ########################
                 +
@@ -29,11 +29,9 @@ as done with HP-UX-login (/etc/usertty, /etc/securetty),
 and adds a lot of capabilities for logging and draws
 login-masks that are REALLY FANCY (didn't think so, eh')!
 
-in version 0.99.6 we are not yet able to "revolutionize"
+in version 0.99.7 we are not yet able to "revolutionize"
 everything you know about logins, but we have lots of
-plans on doing so! (see the file ROADMAP for
-future-functionality), so I'm sure this isn't the last
-you've heard about fancylogin.
+plans on doing so!
 
 the file INSTALL describes the basic installation procedure,
 follow its instructions, and nothing can actually happen!
@@ -41,7 +39,3 @@ follow its instructions, and nothing can actually happen!
 NOTE THAT FANCYLOGIN IS NOT COMPATIBLE TO NORMAL login. 
 DO NOT REPLACE YOUR NORMAL LOGIN BY FANCYLOGIN. FANCYLOGIN
 SHOULD BE USED IN ADDITION TO YOUR NORMAL LOGIN!
-
-(It would also be a good idea to use fancylogin for telnet
-just add "-L /bin/fancylogin" to whatever starts in.telnetd
-(usually in inetd.conf or an init-script).)

@@ -26,22 +26,52 @@
 #include "config.h"
 #include "environment.h"
 
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 #ifdef SUPPORT_SYSLOG
 #include <syslog.h>
 #endif
 
-#include <time.h>
-
-
 #include "limits.h"
 #include "definitions.h"
 #include "log_message.h"
+
+/*
+ * Please excuse my using a global-variable,
+ * but I'm just too lazy to pass this parameter
+ * through the program over and over again,
+ * because almost every function calls these
+ * logging-functions, and passing the rmthost
+ * variable to all of these functions wouldn't
+ * be very readable.
+ */
+
+static char rmthost[__MAX_STR_LEN__]="";
+
+
+
+
+
+void set_rmthost (char *input);
+int log_message (int msgid, char *msg);
+
+
+
+
+
+/******************************************************************************/
+/* set_rmthost: sets the global variable rmthost                              */
+/******************************************************************************/
+
+void
+set_rmthost (char *input)
+{
+  strcpy (rmthost, input);
+}
 
 
 
@@ -104,6 +134,7 @@ log_message (int msgid, char *msg)
      if (fgets(line, sizeof (line), logging) == NULL)
         break;
 
+
       /*
        * parse the line
        */
@@ -144,8 +175,9 @@ log_message (int msgid, char *msg)
               time (&xxtime);
               strcpy (chtime, ctime(&xxtime));
               chtime[strlen(chtime)-1] = '\0';
-              sprintf (xmessage, "login from %s on %s: %s", ttyname(0),
-                       chtime, message);
+              sprintf (xmessage, "login from %s on %s: %s",
+                                 (rmthost[0]==0 ? ttyname(0) : rmthost),
+                                 chtime, message);
 
               /*
                * write the string to the file
@@ -167,7 +199,9 @@ log_message (int msgid, char *msg)
                * because syslog will do it for us, so we
                * just add the terminal, the login is from
                */
-              sprintf (xmessage, "from %s: %s", ttyname(0), message);
+              sprintf (xmessage, "from %s: %s",
+                                  (rmthost[0]==0 ? ttyname(0) : rmthost),
+                                  message);
 
               /*
                * syslog it
@@ -188,6 +222,8 @@ log_message (int msgid, char *msg)
 
   return TRUE;  
 }
+
+
 
 /******************************************************************************/
 /* (c) Copyright 1999-2000 Richard Bergmair, remember this program is GPLed!  */

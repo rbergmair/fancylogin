@@ -30,20 +30,83 @@
 #include <sys/types.h>
 #include <pwd.h>
 #include <shadow.h>
+#include <time.h>
 
 #include "config.h"
 #include "definitions.h"
 #include "limits.h"
 #include "log_message.h"
 #include "login_permissions.h"
+#include "md5crypt.h"
+
+
 
 /*
  * I couldn't find the header for
- * the deklaration of crypt, so I just inserted
- * the deklaration from the manpage literally.
+ * the declaration of crypt, so I just inserted
+ * the declaration from the manpage literally.
  */
 
 char *crypt(const char *key, const char *salt);
+
+
+
+#define __AUTHENTICATED__		0
+#define __WRONG_PASSWORD__		1
+#define __USER_EXPIRED__		2
+
+
+
+
+
+static int check_password(char *crypted, char *clear);
+static int auth_normal(struct passwd *passwd, char *clear);
+static int auth_shadow(struct passwd *passwd, char *clear);
+struct passwd *authenticated(char *username, char *password, char *rmthost);
+
+
+
+
+
+/******************************************************************************/
+/* check_password: compares the given crypted password with the encrypted     */
+/*                 cleartextpassword.                                         */
+/******************************************************************************/
+
+static int
+check_password (char *crypted, char *clear)
+{
+  /*
+   * crypt the cleartext-password
+   * using the salt-string, and finally
+   * see if it's the same as entered
+   *
+   * to put it simply
+   *
+   * return (strcmp ((char *)crypt(clear, passwd->pw_passwd),
+   *         passwd->pw_passwd) == 0);
+   */
+
+#ifndef ALLOW_MD5
+  return (strcmp ((char *)crypt(clear, crypted), crypted)==0);
+#endif
+
+#ifndef ALLOW_DES
+  return (strcmp ((char *)md5crypt(clear,crypted), crypted)==0);
+#endif
+
+#ifdef ALLOW_MD5
+#ifdef ALLOW_DES
+
+  if ((strcmp ((char *)crypt(clear, crypted), crypted) != 0))
+    return (strcmp ((char *)md5crypt(clear, crypted),crypted) == 0);
+  else
+    return TRUE;
+
+#endif
+#endif
+
+}
 
 
 
@@ -55,17 +118,13 @@ char *crypt(const char *key, const char *salt);
 /*              using standard-authentication.                                */
 /******************************************************************************/
 
-int
+static int
 auth_normal (struct passwd *passwd, char *clear)
 {
-  /*
-   * crypt the cleartext-password
-   * using the salt-string, and finally
-   * see if it's the same as entered
-   */ 
-
-  return (strcmp ((char *)crypt(clear, passwd->pw_passwd), passwd->pw_passwd)
-          == 0);
+  if (check_password(passwd->pw_passwd, clear))
+    return __AUTHENTICATED__;
+  else
+    return __WRONG_PASSWORD__;
 }
 
 #endif
@@ -80,7 +139,7 @@ auth_normal (struct passwd *passwd, char *clear)
 /*              using shadow-authentication                                   */
 /******************************************************************************/
 
-int
+static int
 auth_shadow (struct passwd *passwd, char *clear)
 {
   /*
@@ -90,10 +149,29 @@ auth_shadow (struct passwd *passwd, char *clear)
    */
 
   struct spwd *entry;
+  time_t now;
 
   entry = getspnam (passwd->pw_name);
 
-  return (strcmp ((char *)crypt(clear, entry->sp_pwdp), entry->sp_pwdp) == 0);
+  /* what time is it? */
+  time (&now);
+  
+  /* has the account expired? */
+  if ((entry->sp_expire != -1) && ((unsigned long)now/(60*60*24) > entry->sp_expire))
+    {
+      char errormessage[__MAX_STR_LEN__];
+
+      sprintf (errormessage, "the account for %s has expired",
+               passwd->pw_name);
+      log_message (40000+passwd->pw_uid, errormessage);
+      log_message (49999, errormessage);
+      return __USER_EXPIRED__;
+    }
+
+  if (check_password(entry->sp_pwdp, clear))
+    return __AUTHENTICATED__;
+  else
+    return __WRONG_PASSWORD__;
 }
 
 #endif
@@ -111,6 +189,7 @@ authenticated (char *username, char *password, char *rmthost)
 {
   struct passwd *passwd_entry;
   char errormessage [__MAX_STR_LEN__];
+  int x;
 
   /*
    * if (((strcmp (username, "DMR"))==0) && (strcmp (password, "ABCD") == NULL))
@@ -120,18 +199,11 @@ authenticated (char *username, char *password, char *rmthost)
    */
 
 
-  /*
-   * did the user enter a name?
-   */
-
+  /* has the user entered a name? */
   if (username[0]=='\0')
     return NULL;
 
-
-  /*
-   * is the user known to the system?
-   */ 
-
+  /* is the user known to the system? */
   if ((passwd_entry = getpwnam (username)) == NULL)
     {
       sprintf (errormessage, "%s is not known to the system!", username);
@@ -161,7 +233,7 @@ authenticated (char *username, char *password, char *rmthost)
  
   /*
    * is the user locked?
-   */ 
+   */
 
   if ((passwd_entry->pw_passwd[0])=='!')
     {
@@ -204,7 +276,7 @@ authenticated (char *username, char *password, char *rmthost)
 
 
   /*
-   * is the password correct?
+   * can the user be authenticated to the system? 
    */
 
   if (strcmp(passwd_entry->pw_passwd,"x")==0)  /* Do we use shadow? */
@@ -212,13 +284,24 @@ authenticated (char *username, char *password, char *rmthost)
 
 #ifdef ALLOW_SHADOW
 
-      if (auth_shadow (passwd_entry, password))
+      if ((x=auth_shadow (passwd_entry, password))==__AUTHENTICATED__)
         {
           sprintf (errormessage, "%s logged in", passwd_entry->pw_name);
           log_message (30000+passwd_entry->pw_uid, errormessage);
           log_message (39999, errormessage);
           return passwd_entry;
         }
+      else
+        if (x==__USER_EXPIRED__)
+          {
+            sprintf (errormessage, "%s expired",
+                     passwd_entry->pw_name);
+            log_message (40000+passwd_entry->pw_uid, errormessage);
+            log_message (49999, errormessage);
+            return NULL;
+          }
+        else 
+          return NULL;
 
 #endif
 
@@ -228,28 +311,31 @@ authenticated (char *username, char *password, char *rmthost)
 
 #ifdef ALLOW_NORMAL
 
-      if (auth_normal (passwd_entry, password))
+      if (auth_normal (passwd_entry, password)==__AUTHENTICATED__)
         {
           sprintf (errormessage, "%s logged in", passwd_entry->pw_name);
           log_message (30000+passwd_entry->pw_uid, errormessage);
           log_message (39999, errormessage);
           return passwd_entry;
         }
+      else
+        {
+          /* Log that the authentication failed */
+          sprintf (errormessage, "%s entered a wrong password",
+                   passwd_entry->pw_name);
+          log_message (40000+passwd_entry->pw_uid, errormessage);
+          log_message (49999, errormessage);
+          return NULL;
+        }
 
 #endif
 
     }
 
-
-  /*
-   * Log that the authentication failed
-   */
-
-  sprintf (errormessage, "%s entered a wrong password", passwd_entry->pw_name);
-  log_message (40000+passwd_entry->pw_uid, errormessage);
-  log_message (49999, errormessage);
   return NULL;
 }
+
+
 
 /******************************************************************************/
 /* (c) Copyright 1999-2000 Richard Bergmair, remember this program is GPLed!  */

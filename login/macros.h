@@ -1,20 +1,22 @@
+#ifndef __HAVE_MACROS_H__
+#define __HAVE_MACROS_H__
+
+
 #define put_out(value)              \
-  for (i=0,k=0;t!=EOF && k<3;)      \
+  for (i=0,k=0;c!=EOF && k<3;)      \
     {                               \
-      attrset(COLOR_PAIR(c-'0'));   \
       if (i<strlen(value))          \
-        addch(value[i++]);          \
+        putchar(value[i++]);        \
       else                          \
-        addch(' ');                 \
-      if (t=='%')                   \
+        putchar(' ');               \
+      if (c=='%')                   \
         k++;                        \
       else                          \
-        {                           \
-          t=fgetc(textfile);        \
-          c=fgetc(colorfile);       \
-        }                           \
+        c=(*(ansiscreen++));        \
     }                               \
   isopen=FALSE;                     \
-  c=fgetc(colorfile);               \
-  t=fgetc(textfile);                \
-  break;                                  
+  c=(*(ansiscreen++));              \
+  break;    
+
+
+#endif

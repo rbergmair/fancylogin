@@ -1,5 +1,6 @@
-void handle_sigint (int val);
-void handle_sigterm (int val);
-void handle_sigsegv (int val);
-void handle_misc (int val);
+#ifndef __SIGNAL_HANDLE_H__
+#define __SIGNAL_HANDLE_H__
+
 void install_handlers (void);
+
+#endif

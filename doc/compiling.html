@@ -1,0 +1,192 @@
+<HTML
+><HEAD
+><TITLE
+>Compiling and Installing fancylogin</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.52"><LINK
+REL="HOME"
+TITLE="fancylogin documentation"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="Obtaining fancylogin"
+HREF="obtaining.html"><LINK
+REL="NEXT"
+TITLE="Themes and Configuration"
+HREF="configuration.html"></HEAD
+><BODY
+CLASS="SECTION"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>fancylogin documentation</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="obtaining.html"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="configuration.html"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECTION"
+><H1
+CLASS="SECTION"
+><A
+NAME="COMPILING"
+>Compiling and Installing fancylogin</A
+></H1
+><P
+><P
+></P
+><UL
+><LI
+><P
+>   Download and decompress the fancylogin tarball.
+ </P
+></LI
+><LI
+><P
+>   Enter the <TT
+CLASS="FILENAME"
+>fancylogin-XYZ</TT
+> directory, where XYZ 
+   is the fancylogin version.
+ </P
+></LI
+><LI
+><P
+>   Edit the files <TT
+CLASS="FILENAME"
+>login/config.h</TT
+> and <TT
+CLASS="FILENAME"
+>   environment.h</TT
+> after your preferences (for experts only!).
+ </P
+></LI
+><LI
+><P
+>   Do a 'make'.
+ </P
+></LI
+><LI
+><P
+>   Do a 'make install'. This installs fancylogin into the /sbin 
+   directory. You should be root while doing this.
+ </P
+></LI
+><LI
+><P
+>   Do a 'make sampleconf'. This copies a sample theme to 
+   the directory /etc.
+ </P
+></LI
+><LI
+><P
+>   Edit your <TT
+CLASS="FILENAME"
+>/etc/inittab</TT
+> file. You will find a 
+   line like '1:2345:respawn:/sbin/mingetty tty1' somewhere
+   in this file. Please replace the 'mingetty' by 
+   'mingetty.fancylogin' to make the system start fancylogin after booting.
+   It always save to leave the standard login
+   program on one console, if anything of the installation failed
+   or so.
+ </P
+></LI
+><LI
+><P
+>    Do a 'telinit Q', and press Ctrl-C (if you're not logged in) or Ctrl-D 
+    (if you're logged in) to start fancylogin.
+ </P
+></LI
+></UL
+></P
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="obtaining.html"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="configuration.html"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>Obtaining fancylogin</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Themes and Configuration</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

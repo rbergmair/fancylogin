@@ -32,6 +32,16 @@
 #include "limits.h"
 #include "log_message.h"
 #include "fancy.h"
+#include "emergency.h"
+
+
+
+
+
+void check(void *checkfor);
+void fatal(void);
+
+
 
 
 
@@ -45,19 +55,7 @@ check(void *checkfor)
   if (checkfor == NULL)
     {
       log_message (2, "Out of memory, executing emergency login (/bin/login)");
-
-      close_prompt ();
-
-#ifdef EXECUTE_EMERGENCY_LOGIN
-      for (;;)
-        {
-          execl (EMERGENCY_LOGIN, EMERGENCY_LOGIN, NULL);
-          log_message (1, "Because I ran out of memory, I tried to execute the \
-                           emergency login (EMERGENCY_LOGIN), which failed.");
-          sleep (5*60);                                                        
-        }
-#endif
-      exit (-1);
+      fatal ();
     }                                                                          
 }
 
@@ -81,7 +79,6 @@ fatal (void)
       sleep (5*60);
     }
 #endif
-  exit (-2);
 }
 
 

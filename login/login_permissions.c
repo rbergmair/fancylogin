@@ -26,10 +26,8 @@
 
 
 
-
 #include "config.h"
 #include "environment.h"
-
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,7 +39,6 @@
 #include <netdb.h>
 #include <sys/socket.h>
 
-
 #include "macros.h"
 #include "definitions.h"
 #include "limits.h"
@@ -49,8 +46,6 @@
 #include "log_message.h"
 #include "emergency.h"
 #include "login.h"
-
-
 
 
 
@@ -75,6 +70,26 @@ struct sectionmember
   };
 
 #endif
+
+
+
+
+
+#ifdef SUPPORT_USERTTY
+static struct sections *process_section(FILE *usertty);
+static int file_pos_str(FILE *input, char *pattern);
+static int time_ok(char *param);
+static void dispose_section(struct sections *sect);
+static char *get_time(char *complete);
+static char *get_orig(char *orig);
+static int orig_ok(char *givenorig, char *remotehost);
+int user_allowed(struct passwd *user, char *rmthost);
+#endif
+
+#ifdef SUPPORT_SECURETTY
+int root_allowed(void);
+#endif
+
 
 
 
@@ -145,7 +160,7 @@ root_allowed (void)
 /*                  class a list of members.                                  */
 /******************************************************************************/
 
-struct sections *
+static struct sections *
 process_section (FILE *usertty)
 {
   char line[__MAX_STR_LEN__];
@@ -217,7 +232,7 @@ process_section (FILE *usertty)
 /* file_pos_str: position file pointer to where string is first found         */
 /******************************************************************************/
 
-int
+static int
 file_pos_str(FILE *input, char *pattern)
 {
   char line[__MAX_STR_LEN__];
@@ -245,7 +260,7 @@ file_pos_str(FILE *input, char *pattern)
 /*          using the string in the syntax, as defined for HP-UX logins.      */
 /******************************************************************************/
 
-int
+static int
 time_ok (char *param)
 {
 
@@ -330,7 +345,7 @@ time_ok (char *param)
 /* dispose_section: frees the memory for the section                          */
 /******************************************************************************/
 
-void
+static void
 dispose_section (struct sections *sect)
 {
   struct sections *sections_buf;
@@ -357,7 +372,7 @@ dispose_section (struct sections *sect)
 /* get_time: parses the part [<return-value>]... out of complete.             */
 /******************************************************************************/
 
-char *
+static char *
 get_time (char *complete)
 {
 
@@ -385,7 +400,7 @@ get_time (char *complete)
 /* get_orig: parses the part [...]<return-value> out of complete.             */
 /******************************************************************************/
 
-char *
+static char *
 get_orig (char *complete)
 {
   static char output[__MAX_STR_LEN__];
@@ -411,7 +426,7 @@ get_orig (char *complete)
 /* orig_ok: check wheather the given origin is ok for given remote host.      */
 /******************************************************************************/
 
-int
+static int
 orig_ok (char *tryorig, char *remotehost)
 {
   static char terminal[__MAX_STR_LEN__] = {0};
@@ -567,6 +582,27 @@ orig_ok (char *tryorig, char *remotehost)
 
 
 /******************************************************************************/
+/* is_member: determines whether user isa member of groupname.                */
+/******************************************************************************/
+
+static int
+is_member (struct passwd *user, char *groupname)
+{
+  struct group *group;
+  int i;
+
+  group=getgrnam(groupname);
+
+  for (i=0;group->gr_mem[i]!=NULL;i++)
+    if (strcmp(group->gr_mem[i], user->pw_name) == 0)
+      return TRUE;
+
+  return FALSE;
+}
+
+
+
+/******************************************************************************/
 /* user_allowed: checks wheather /etc/usertty allows to log on to system.     */
 /******************************************************************************/
 
@@ -688,7 +724,7 @@ user_allowed (struct passwd *user, char *rmthost)
    */
 
   for (cur1=groups;cur1!=NULL;cur1=cur1->next)
-    if (strcmp (cur1->sectionname, usergroup->gr_name) == 0)
+    if (is_member(user, cur1->sectionname))
       {                               /* added braces to make gcc -Wall happy */
         for (cur2=cur1->members;cur2!=NULL;cur2=cur2->next)
           if (orig_ok (get_orig (cur2->membername) , rmthost) &&
@@ -712,6 +748,8 @@ user_allowed (struct passwd *user, char *rmthost)
 }
 
 #endif
+
+
 
 /******************************************************************************/
 /* (c) Copyright 1999-2000 Richard Bergmair, remember this program is GPLed!  */

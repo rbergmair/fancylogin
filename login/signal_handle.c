@@ -24,16 +24,25 @@
 
 
 
-
 #include "config.h"
 #include "fancy.h"
 #include "log_message.h"
 #include "emergency.h"
 
-
 #include <signal.h>
 
+
+
+
+
+static void handle_sigint(int val);
+static void handle_sigterm(int val);
+static void handle_sigsegv(int val);
+static void handle_misc(int val);
+void install_handlers(void);
   
+
+
 
 /******************************************************************************/
 /* handle_sigint: handler for SIGINT                                          */
@@ -43,7 +52,7 @@ void
 handle_sigint (int val)
 {
   close_prompt ();
-  exit (0);
+  exit (-1);
 }
 
 
@@ -106,6 +115,8 @@ install_handlers (void)
   signal (SIGTERM, handle_sigterm);
   signal (SIGFPE, handle_misc);
 }
+
+
 
 /******************************************************************************/
 /* (c) Copyright 1999-2000 Richard Bergmair, remember this program is GPLed!  */

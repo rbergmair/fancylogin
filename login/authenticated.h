@@ -1,5 +1,8 @@
+#ifndef __HAVE_AUTHENTICATED_H__
+#define __HAVE_AUTHENTICATED_H__
+
 #include <pwd.h>
 
-int auth_normal (struct passwd *passwd, char *clear);
-int auth_shadow (struct passwd *passwd, char *clear);
-struct passwd *authenticated (char *username, char *password, char *rmthost);
+struct passwd *authenticated(char *username, char *password, char *rmthost);
+
+#endif

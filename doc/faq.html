@@ -1,0 +1,223 @@
+<HTML
+><HEAD
+><TITLE
+>FAQ</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.52"><LINK
+REL="HOME"
+TITLE="fancylogin documentation"
+HREF="index.html"><LINK
+REL="PREVIOUS"
+TITLE="fancylogin License"
+HREF="license.html"><LINK
+REL="NEXT"
+TITLE="Credits"
+HREF="credits.html"></HEAD
+><BODY
+CLASS="SECTION"
+><DIV
+CLASS="NAVHEADER"
+><TABLE
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TH
+COLSPAN="3"
+ALIGN="center"
+>fancylogin documentation</TH
+></TR
+><TR
+><TD
+WIDTH="10%"
+ALIGN="left"
+VALIGN="bottom"
+><A
+HREF="license.html"
+>Prev</A
+></TD
+><TD
+WIDTH="80%"
+ALIGN="center"
+VALIGN="bottom"
+></TD
+><TD
+WIDTH="10%"
+ALIGN="right"
+VALIGN="bottom"
+><A
+HREF="credits.html"
+>Next</A
+></TD
+></TR
+></TABLE
+><HR
+ALIGN="LEFT"
+WIDTH="100%"></DIV
+><DIV
+CLASS="SECTION"
+><H1
+CLASS="SECTION"
+><A
+NAME="FAQ"
+>FAQ</A
+></H1
+><DIV
+CLASS="QANDASET"
+><DL
+><DT
+>1. <A
+HREF="faq.html#AEN123"
+>    I've modified /etc/inittab to execute /bin/fancylogin,
+    but fancylogin only does weird stuff.
+    </A
+></DT
+><DT
+>2. <A
+HREF="faq.html#AEN128"
+>    When I log in via fancylogin with zsh as my login shell,
+    it shows an error message for a short time, and then returns
+    back to fancylogin.
+    </A
+></DT
+><DT
+>3. <A
+HREF="faq.html#AEN133"
+>  I can't login at tty2.
+  </A
+></DT
+></DL
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN123"
+></A
+><B
+>1. </B
+>    I've modified /etc/inittab to execute /bin/fancylogin,
+    but fancylogin only does weird stuff.
+    </P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>    You have to use a getty that executes /bin/fancylogin.
+    See the file INSTALL for exact installation instructions.
+    </P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN128"
+></A
+><B
+>2. </B
+>    When I log in via fancylogin with zsh as my login shell,
+    it shows an error message for a short time, and then returns
+    back to fancylogin.
+    </P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>    In version 0.99.6 we did the assumption, that login shells are
+    called with the parameter "-login". This mistake has been 
+    fixed in 0.99.7. Please upgrade to a current version!
+    </P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN133"
+></A
+><B
+>3. </B
+>  I can't login at tty2.
+  </P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>  That was the 0.99.6b stndard configuration. Edit /etc/usertty as you
+  need it, or just delete or disable it.
+  </P
+></DIV
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="NAVFOOTER"
+><HR
+ALIGN="LEFT"
+WIDTH="100%"><TABLE
+WIDTH="100%"
+BORDER="0"
+CELLPADDING="0"
+CELLSPACING="0"
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+><A
+HREF="license.html"
+>Prev</A
+></TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+><A
+HREF="index.html"
+>Home</A
+></TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+><A
+HREF="credits.html"
+>Next</A
+></TD
+></TR
+><TR
+><TD
+WIDTH="33%"
+ALIGN="left"
+VALIGN="top"
+>fancylogin License</TD
+><TD
+WIDTH="34%"
+ALIGN="center"
+VALIGN="top"
+>&nbsp;</TD
+><TD
+WIDTH="33%"
+ALIGN="right"
+VALIGN="top"
+>Credits</TD
+></TR
+></TABLE
+></DIV
+></BODY
+></HTML
+>

@@ -17,6 +17,7 @@
  * Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  *
  * Written by Richard Bergmair.
+ * Modified by Andreas Krennmair.
  */
 
 
@@ -27,422 +28,313 @@
 #include "definitions.h"
 #include "limits.h"
 
-#include <stdio.h>
 #include <stdlib.h>
-#include <curses.h>
 #include <unistd.h>
 #include <netdb.h>
 #include <sys/utsname.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <termios.h>
+#include <string.h>
+#include <errno.h>
+#include <signal.h>
 
 #include "log_message.h"
 #include "emergency.h"
+#include "../global/flt.h"
+
+#define PASS_FLD  0x01
+#define NAME_FLD  0x02
+#define KEY_BACKSPACE 127
+#define KEY_RETURN 10
+#define KEY_TAB 9 
+
+
+/*
+ * couldn't find the header
+ * again.
+ */
+
+void setlinebuf(FILE *stream);
+int kill(pid_t pid, int sig);
+
+
+/* 
+ * simple imitiations of the ncurses 
+ * functions move() and clear() 
+ */
+
+#define move(y,x) printf("%c[%d;%df",27,y,x)
+#define clear()   printf("%c[2J",27);fflush(stdout)
+
+
+static struct termios oldtermios;
+static fancylogin_theme theme;
 
 
 
-static int uyc;       /* Username Y-Coordinate         */
-static int uxc;       /* Username X-Coordinate         */
-static int unc;       /* Username Number of Characters */
-static int umc;       /* Username Mask Color           */
-static int pyc;       /* Password Y-Coordinate         */
-static int pxc;       /* Password X-Coordinate         */
-static int pnc;       /* Password Number of Characters */
-static int pmc;       /* Password Mask Color           */
-static int fxc;       /* Failure X-Coordinate          */
-static int fyc;       /* Failure Y-Coordinate          */
-static int fmc;       /* Failure-Message-Color         */
+
+
+static void set_pwfield_attrs(void);
+static void set_userfield_attrs(void);
+static void reset_field_attrs(void);
+static void init_screen(void);
+static int process_config(void);
+static int draw_ansiscreen(char *ansiscreen);
+static int draw_logon(void);
+static int inputmask(int ypos, int xpos, const int maxchars, char *getback,
+                     char mask, char emptyc);
+static char readkey(void);
+int initialize_prompt(void);
+void fancy_prompt(char *user, char *password);
+int close_prompt(void);
+int draw_faillogon(void);
 
 
 
-/******************************************************************************/
-/* setcol: converts the color it gets from the char* colc to the short value  */
-/*         defined by the ncurses-defines and puts it to coln.                */
-/******************************************************************************/
 
-static void
-setcol (short *coln, char *colc)
+
+/***********************************************************************/
+/* set_pwfield_attrs: sets the attributes for the password-mask from   */ 
+/*                    the themefile.                                   */
+/***********************************************************************/
+
+static void 
+set_pwfield_attrs(void)
 {
-  /*
-   * if anybody knows a more elegant   
-   * way of doing this please tell me! 
-   */
-
-  if (strcmp(colc,"BLACK")==0)
-    (*coln)=COLOR_BLACK;
-  if (strcmp(colc,"RED")==0)
-    (*coln)=COLOR_RED;
-  if (strcmp(colc,"GREEN")==0)
-    (*coln)=COLOR_GREEN;
-  if (strcmp(colc,"YELLOW")==0)
-    (*coln)=COLOR_YELLOW;
-  if (strcmp(colc,"BLUE")==0)
-    (*coln)=COLOR_BLUE;
-  if (strcmp(colc,"MAGENTA")==0)
-    (*coln)=COLOR_MAGENTA;
-  if (strcmp(colc,"CYAN")==0)
-    (*coln)=COLOR_CYAN;
-  if (strcmp(colc,"WHITE")==0)
-    (*coln)=COLOR_WHITE;
+  printf("%c[%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%dm",27,0,
+  theme.pwattr[0],
+  theme.pwattr[1],
+  theme.pwattr[2],
+  theme.pwattr[3],
+  theme.pwattr[4],
+  theme.pwattr[5],
+  theme.pwattr[6],
+  theme.pwattr[7],
+  theme.pwattr[8],
+  theme.pwattr[9]);
 }
 
 
 
-/******************************************************************************/
-/* setc: init_pair-equivalent which takes char* instead of short              */
-/******************************************************************************/
+/***********************************************************************/
+/* set_userfield_attrs: sets the attributes for the username-mask from */
+/*                      the themefile.                                 */
+/***********************************************************************/
 
-static int
-setc(int num, char *forec, char *backc)
+static void 
+set_userfield_attrs(void)
 {
-  short foregc;
-  short backgc;
-
-  /* convert */
-  setcol(&foregc, forec);
-  setcol(&backgc, backc);
-
-  /* init */
-  init_pair(num, foregc, backgc);
-  return 0;                     
+  printf("%c[%d;%d;%d;%d;%d;%d;%d;%d;%d;%d;%dm",27,0,
+  theme.unattr[0],
+  theme.unattr[1],
+  theme.unattr[2],
+  theme.unattr[3],
+  theme.unattr[4],
+  theme.unattr[5],
+  theme.unattr[6],
+  theme.unattr[7],
+  theme.unattr[8],
+  theme.unattr[9]);
 }
 
 
 
-/******************************************************************************/
-/* process_config: Processes the configuration file "logon.defs" as well      */
-/*                 as inits the color pairs using the definition numbers.     */
-/******************************************************************************/
+/************************************************************************/
+/* reset_field_colors: resets the colors to the terminal's default      */
+/************************************************************************/
+
+static void 
+reset_field_attrs(void)
+{
+  printf("%c[m",27);
+}
+
+
+
+/*************************************************************************/
+/* init_screen: initializes the screen to show special characters, e.g.  */
+/*              card symbols, arrows, the famous framebars, etc.         */
+/*************************************************************************/
+
+static void 
+init_screen(void)
+{
+  printf("\033[m\033]R\033]R\033[H\033[J\033[0;10;1;11m");
+}
+
+
+
+/*****************************************************************************/
+/* process_config: Processes the configuration file "signon.defs".           */
+/*****************************************************************************/
 
 static int
 process_config(void)
 {
-  FILE *configuration;            /* configuration-file handler            */
-  char line[__MAX_STR_LEN__];     /* buffer to take the input line by line */
-  int no;                         /* Number                                */
-  char foreg[__MAX_STR_LEN__];    /* Foreground                            */
-  char backg[__MAX_STR_LEN__];    /* Background                            */ 
+  int fd;
 
-  /*
-   * open the configuration.
-   */
+  fd=open(FILENAME_DEFAULTFLT, O_RDONLY);
+  read(fd, &theme, sizeof theme);
+  close(fd);
 
-  if ((configuration = fopen(FILENAME_SIGNON_DEFS,"r"))==NULL)
-    {
-      char message[__MAX_STR_LEN__];  
-      sprintf (message, "Could not open %s", FILENAME_SIGNON_DEFS);
-      log_message (1, message);
-      fatal ();
-    }
-
-
-  /* go through the file line by line... */
-  while (fgets (line, sizeof (line), configuration) != NULL)
-
-    /* ...leaving out comments */    
-    if ((line[0]!='#') && (line[0]!=0) && (line[0] !=10))
-
-      /* as we can only define "color", "username", "password" and "failure", */
-      /* it is enough to compare the first character.             */
-      switch (line[0])
-        {
-           /* color ****************************************************/
-           case 'c' : sscanf (line+5, " %d %s %s", &no, foreg, backg);
-                      setc (no, foreg, backg);
-                      break; 
-
-           /* username *************************************************/
-           case 'u' : sscanf (line+8, " %d %d %d %d", &uyc, &uxc, &unc, &umc);
-                      break;
-
-           /* password *************************************************/  
-           case 'p' : sscanf (line+8, " %d %d %d %d", &pyc, &pxc, &pnc, &pmc);
-                      break;
-
-           /* failure **************************************************/  
-           case 'f' : sscanf (line+7, " %d %d %d", &fyc, &fxc, &fmc);
-                      break;
-        }
-
-
-  /*
-   * close file
-   */
-
-  fclose(configuration);
   return 0;
 }
 
 
 
-/******************************************************************************/
-/* close_prompt: stuff to do when terminating                                 */
-/******************************************************************************/
+/*****************************************************************************/
+/* close_prompt: stuff to do when terminating                                */
+/*****************************************************************************/
 
-void
+int
 close_prompt (void)
 {
-  endwin();
+  /* set the new attributes */
+  if (tcsetattr(0,TCSADRAIN,&oldtermios))
+    return -1;
+
+  setlinebuf(stdout); 
+  fflush(stdout);
+  printf("%cc", 27);
+  fflush(stdout);
+  return 0;
 }
 
 
 
-/******************************************************************************/
-/* initncurses: do initialization for ncurses                                 */
-/******************************************************************************/
-
-void
-initncurses (void)
-{
-  initscr ();              /* initialize the curses library */
-  keypad (stdscr, TRUE);   /* enable keyboard mapping */
-  nonl ();                 /* tell curses not to do NL->CR/NL on output */
-  cbreak ();               /* take input chars one at a time, no wait for \n */
-  noecho ();               /* don't echo input */
-  start_color ();          /* initialize the use of colors */
-
-  init_pair(50, COLOR_WHITE, COLOR_RED);
-}
-
-
-
-/******************************************************************************/
-/* draw_logon: draws the logon-screen, defined in signon.colors and           */
-/*             signon.text onto the screen.                                   */
-/*             NOTE: to keep the code small and simple, the program           */
-/*             supposes, that signon.colors and signon.text both have 25*80   */
-/*             (or whatever size your screen has) characters, except for \n   */
-/*             and other control-characters.                                  */
-/******************************************************************************/
+/*****************************************************************************/
+/* draw_ansifile: draws the logon-screen, defined in an ansi file.           */
+/*****************************************************************************/
 
 static int
-draw_logon (void)
+draw_ansiscreen (char *ansiscreen)
 {
   char c;             /* color-character-buffer */
-  char t;             /* text-character-buffer */
-  FILE *colorfile;    /* file-handler for signon.colors */
-  FILE *textfile;     /* file-handler for signon.text */
-  int isopen=0;
-  char termname[__MAX_STR_LEN__];
+  FILE *theme;        
   struct utsname info;
+  char termname[__MAX_STR_LEN__];
   
   /* 
    * we try to get the hostname and the terminal-name; 
    * if this fails, the hostname becomes an empty
-   * strings and the terminal-name is simply `tty'.            
+   * string and the terminal-name is simply `tty'.            
    */
 
   sscanf (ttyname(0), "/dev/%s", termname);
   uname(&info);
 
+  init_screen();
 
-  /*
-   * open the files 
-   */
-
-  if ((colorfile = fopen(FILENAME_SIGNON_COLORS,"rt"))==NULL)
-    {
-      char message[__MAX_STR_LEN__];
-      sprintf (message, "Could not open %s\n", FILENAME_SIGNON_COLORS);
-      log_message (1, message);
-      fatal ();
-    }
-
-
-  if ((textfile = fopen(FILENAME_SIGNON_TEXT, "rt")) == NULL)
-    {
-      char message[__MAX_STR_LEN__];
-      sprintf(message,"Could not open %s\n", FILENAME_SIGNON_TEXT);
-      log_message (1, message);
-      fclose (colorfile);
-      fatal ();
-    }
-
-
+  clear();
   move (0, 0);
 
    
-  while ((c=fgetc(colorfile))!=EOF)  /* for every character you find in */
-    {                                /* signon.colors ...*/  
-      if ((t=fgetc(textfile))==EOF)  /* take the next character from text */
-        break;             
-      attrset(COLOR_PAIR(c-'0'));    /* set the color-pair */
-
-      if (t=='%')
+  while ((c=(*(ansiscreen++)))!=EOF)  /* for every character you find in */
+    {                            /*  the themefile...*/  
+      if (c=='%')
         {
-          int i; 
+          int i;
           int k;
-          isopen=TRUE;
-
-          /*
-           * the code-sequence of put_out is defined
-           * in the macros file, and looks like this:
-           *
-           * #define put_out(value)              \
-           *   for (i=0,k=0;t!=EOF && k<3;)      \
-           *     {                               \
-           *       attrset(COLOR_PAIR(c-'0'));   \
-           *       if (i<strlen(value))          \
-           *         addch(value[i++]);          \
-           *       else                          \
-           *         addch(' ');                 \
-           *       if (t=='%')                   \
-           *         k++;                        \
-           *       else                          \
-           *         {                           \
-           *           t=fgetc(textfile);        \
-           *           c=fgetc(colorfile);       \
-           *         }                           \
-           *     }                               \
-           *   isopen=FALSE;                     \
-           *   c=fgetc(colorfile);               \
-           *   t=fgetc(textfile);                \
-           *   break;
-           */
-                                                      
-          /* take the next character */ 
-          if ((t=fgetc(textfile))==EOF) 
-            break;
-          c=fgetc(colorfile);
-          attrset(COLOR_PAIR(c-'0'));    /* set the color-pair */
-
-          /* what are we supposed to put? */
-          switch (t)
+          int isopen=TRUE;
+          c=(*(ansiscreen++));
+          switch (c)
             {
               case 'h': put_out(info.nodename)
               case 't': put_out(termname)
               case 's': put_out(info.sysname)
               case 'm': put_out(info.machine)
-	    }
-	}
+            }
+        }
       else
-        if (t >= 0x20)                 /* leaving out special-characters */
-          addch(t);                    /* print the character from text */
-    
-   } /* while */
+        putchar(c);   
+    } /* while */
 
 
-  /*
-   * close the files
-   */
-
-  fclose (colorfile);
-  fclose (textfile);
-  
-  refresh ();
+  fflush(stdout);
 
   return 0;
 }
 
 
 
-/******************************************************************************/
-/* loginfail: puts a message, telling the user, that the login failed.        */
-/******************************************************************************/
-
-int 
-fail_login(void)
-{
-  FILE *failmsg;
-  int c;
-  int xp;
-  int yp;
-
-
-  /*
-   * open the configuration file
-   */
-
-  if ((failmsg = fopen(FILENAME_SIGNON_FAIL,"r")) == NULL)
-    {
-      char message[__MAX_STR_LEN__];
-      sprintf (message, "Could not open %s\n", FILENAME_SIGNON_FAIL);
-      log_message (1, message);
-      fatal ();
-    }
-
-
-  /*
-   * set attributes for error-message
-   */
-
-  attrset(COLOR_PAIR(fmc));
-
-  xp=fxc;
-  yp=fyc;
-
-  while ((c=fgetc(failmsg))!=EOF)   /* for every character you find */
-    {
-       if (c!='\n')
-         {
-           move (yp, xp);           /* put the character, if it's not a CRLF */
-           addch (c);
-           xp++;
-         }
-       else
-         {
-           yp++;                    /* modify indices if CRLF */
-           xp=fxc;
-         }
-    }
-
-
-  /*
-   * Close the file
-   */
-
-  fclose(failmsg);  
-
-
-  /*
-   * Display the new screen
-   */
-
-  refresh ();
-
-
-  /*
-   * Wait for the user to press a key
-   */
-
-  getch ();
-
-
-  /*
-   * no errors happened, putting the
-   * messages.
-   */
-
-  return 0;
-}
-
-
-
-/******************************************************************************/
-/* inputmask: draws an input field at y, x which can take up to maxchars      */
-/*            characters, returns the result in char *getback, uses char mask */
-/*            to display an input-mask for example for password-input. If you */
-/*            don't want a mask, set mask 0. char emptyc defines what         */
-/*            character to use, if nothing is displayed, usually ' '.         */
-/*            colp defines which color-pair to use.                           */
-/*            returns 0 if the user terminates the input with <RETURN> and    */
-/*            1 if the user terminates with <TAB>.                            */
-/******************************************************************************/
+/*****************************************************************************/
+/* draw_logon: paint the login-screen                                        */
+/*****************************************************************************/
 
 static int
-inputmask(int ypos, int xpos, const int maxchars, char *getback, char mask, char emptyc, int colp)
+draw_logon(void)
+{
+  draw_ansiscreen(theme.ws);
+  return 0;
+}
+
+
+
+/*****************************************************************************/
+/* draw_faillogin: draw the failed-login-screen, and wait for the user to    */
+/*                 press a key.                                              */
+/*****************************************************************************/
+
+int
+draw_faillogon(void)
+{
+  int x;
+  draw_ansiscreen(theme.fs);
+  x=getchar();
+  return 0;
+}
+
+
+
+/*****************************************************************************/
+/* readkey: read a key from stdin, that is >= 0x20                           */
+/*****************************************************************************/
+
+static char
+readkey(void)
+{
+  char c;
+
+  do
+    c=getchar();
+  while (!((c>=0x20) ||
+           (c==KEY_BACKSPACE) ||
+           (c==KEY_RETURN) ||
+           (c==KEY_TAB)));
+
+  return c;
+}
+
+
+
+/*****************************************************************************/
+/* inputmask: draws an input field at y, x which can take up to maxchars     */
+/*            characters, returns the result in char *getback, uses char mask*/
+/*            to display an input-mask for example for password-input. If you*/
+/*            don't want a mask, set mask 0. char emptyc defines what        */
+/*            character to use, if nothing is displayed, usually ' '.        */
+/*            colp defines which color-pair to use.                          */
+/*            returns 0 if the user terminates the input with <RETURN> and   */
+/*            1 if the user terminates with <TAB>.                           */
+/*****************************************************************************/
+
+static int
+inputmask(int ypos, int xpos, const int maxchars, char *getback,
+          char mask, char emptyc)
 {
   int x=0;     /* Indexcounter for the current editing position */
   int c;       /* Character-buffer */
   int i;       /* counter for several purposes */
 
-  attrset(COLOR_PAIR(colp));
-
   /* clear the part of the screen we'll need */
   move(ypos, xpos);
   for (i=0;i<maxchars;i++)
-    addch(emptyc);
+    putchar (emptyc);
   move(ypos, xpos);
-  refresh ();
-
+  fflush (stdout);
 
   /* initialize the string to return */
   for (i=0;i<=maxchars;i++)
@@ -450,71 +342,109 @@ inputmask(int ypos, int xpos, const int maxchars, char *getback, char mask, char
 
   for (;;)                                     /* forever do */
     {
+      int i;
       x++;                                     /* increment indexcounter */
-      c = getch();                             /* get character from input */
-      if ((c == 13) || (c == 9)) break;        /* break if <RETURN> or <TAB> */
+      c=readkey();                             /* get character from input */
+      if ((c == KEY_RETURN) || (c == KEY_TAB))
+        break;                                 /* break if <RETURN> or <TAB> */
 
-      if (c == KEY_BACKSPACE)                  /* is <BACKSPACE> pressed? */
-        {                                      /* yes-> */
-          if (x>1)                             /* are there characters left */
-            {                                  /* to delete? */
-              x--;                             /* yes-> decrement counter */
-              move(ypos, xpos+x-1);            /* move one position back */
-              getback[x-1]=0;                  /* delete char from string */
-              addch(emptyc);                   /* overwrite the ch on screen */
-              move(ypos, xpos+x-1);            /* and go back again */
-              refresh ();                      /* show everything */
-            }
-          x--;                                 /* decrement counter */
-        }
-      else                                     /* no-> */
-        if (x <= maxchars)                     /* is there space left? */
-          {                                    /* yes-> */
-            move(ypos, xpos+x-1);              /* go one character back */
-	    if (mask==0)                       /* do we need masks? */
-              addch(c);                        /* no:write the char from inp. */
-            else                               
-              addch(mask);                     /* yes: write the mask-char */
-            getback[x-1]=(char)c;              /* add the char to the str. */
-            refresh();                         /* show everything */
-          }
-        else                                    /* no-> */
-          x--;                                  /* decrement counter */
-    }
+      switch (c)
+        {
+          case KEY_BACKSPACE:
+            /*
+             * the user hit <BACKSPACE>
+             */
+            if (x>1)                           /* are there characters left */
+              {                                /* to delete? */
+                x--;                           /* yes-> decrement counter */
+                move(ypos, xpos+x-1);          /* move one position back */
+                getback[x-1]=0;                /* delete char from string */
+                for (i=x;i<=maxchars;i++)
+                  putchar(emptyc);             /* overwrite the ch on screen */
+                move(ypos, xpos+x-1);          /* and go back again */
+                fflush (stdout);               /* show everything */
+              }
+            x--;                               /* decrement counter */
+            break;
 
-  if (c==13) return 0;                 /* return 0 when exited with <RETURN> */
+          case 3:
+            kill(getpid(), SIGINT); 
+
+          default:
+            if (x <= maxchars)                /* is there space left? */
+              {                               /* yes-> */
+                move(ypos, xpos+x-1);         /* go back one character */
+                if (mask==0)                  /* do we need masks? */
+                  putchar(c);                 /* no:write the char from inp.*/
+                else
+                  putchar(mask);              /* yes: write the mask-char */
+                getback[x-1]=(char)c;         /* add the char to the str. */
+                fflush(stdout);               /* show everything */
+              }
+            else
+              x--;                            /* no: decrement counter */
+            break;
+        } /* switch */
+    } /* for */
+
+  if (c==10) return 0;                 /* return 0 when exited with <RETURN> */
   return 1;                            /* return 1 if not so (<TAB>) */
 }
 
 
 
-/******************************************************************************/
-/* initialize_prompt: Initializes everything                                  */
-/******************************************************************************/
+/*****************************************************************************/
+/* initialize_prompt: Initializes everything                                 */
+/*****************************************************************************/
 
-void
+int
 initialize_prompt (void)
 {
-  initncurses ();
+  struct termios tio;
+
+  /* load the configuration */
   process_config ();
+
+  /* get the current terminal attributes */
+  if (tcgetattr(0,&tio))
+    return -1;
+
+  oldtermios=tio;
+
+  tio.c_lflag &= ICANON;
+  tio.c_lflag &= ECHO;
+
+  /* set the new attributes */
+  if (tcsetattr(0,TCSADRAIN,&tio))
+    return -1;
+
+  return 0;
 }
 
 
 
 /******************************************************************************/
-/* main-program                                                               */
+/* main-function                                                              */
 /******************************************************************************/
 
 void
 fancy_prompt (char *user, char *password)
 {
-  draw_logon ();
+  do 
+    {
+      process_config ();
+      draw_logon ();
+      set_userfield_attrs();
+      inputmask (theme.unpy, theme.unpx, theme.unle, user, 0, ' ');
+      set_pwfield_attrs();
+    }
+  while (inputmask (theme.pwpy, theme.pwpx, theme.pwle, password, '*', ' '));
 
-  do
-    inputmask (uyc, uxc, unc, user, 0,  ' ', umc);
-  while (inputmask (pyc, pxc, pnc, password, '*',  ' ', pmc));
+  reset_field_attrs();
 }
 
-/******************************************************************************/
-/* (c) Copyright 1999-2000 Richard Bergmair, remember this program is GPLed!  */
-/******************************************************************************/
+
+
+/*****************************************************************************/
+/* (c) Copyright 1999-2000 Richard Bergmair, remember this program is GPLed! */
+/*****************************************************************************/

@@ -1,4 +1,9 @@
-void fancy_prompt (char *user, char *password);
-int fail_login (void);
-void initialize_prompt (void);
-int close_prompt (void);
+#ifndef __HAVE_FANCY_H__
+#define __HAVE_FANCY_H__
+
+int initialize_prompt(void);
+void fancy_prompt(char *user, char *password);
+int close_prompt(void);
+int draw_faillogon(void);
+
+#endif
