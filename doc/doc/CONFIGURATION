@@ -78,6 +78,196 @@ Is a textfile, that contains the text to be displayed
 in the messagebox for failed logins.
 
 
+
+fancylogin also supports some standard login-files:
+
+/etc/usertty     will be discussed later
+/etc/securetty   root can only login, from a tty named there (without /dev/)
+/etc/nologin     if this file exists, nobody but root can login
+
+/var/run/utmp    for standard utmp/wtmp-logging
+/var/log/wtmp    for standard utmp/wtmp-logging
+
+the following standard-files are NOT supported
+
+/etc/issue
+/etc/motd
+
+(didn't think so, eh'?)
+
+
+
+*************
+/etc/usertty
+*************
+
+this is the standard usertty-file, as used with HP-UX-logins.
+As Peter Orbaek's port of the HP-UX-logins to Linux is quite
+popular, you will propably find manpages and sample files, ...
+with your Linux-distribution. (TurboLinux for example)
+
+Here is the section from the manpage, describing it:
+
+SPECIAL ACCESS RESTRICTIONS
+       The file /etc/securetty lists the names of the ttys  where
+       root  is allowed to log in. One name of a tty device with-
+       out the /dev/ prefix must be specified on each  line.   If
+       the  file does not exist, root is allowed to log in on any
+       tty.
+
+       The file /etc/usertty specifies additional access restric-
+       tions  for specific users. If this file does not exist, no
+       additional access restrictions are imposed. The file  con-
+       sists  of a sequence of sections. There are three possible
+       section types: CLASSES, GROUPS and USERS. A  CLASSES  sec-
+       tion  defines  classes  of  ttys  and hostname patterns, A
+       GROUPS section defines allowed ttys and  hosts  on  a  per
+       group  basis, and a USERS section defines allowed ttys and
+       hosts on a per user basis.
+
+       Each line in this file in may be no longer than 255  char-
+       acters.  Comments start with # character and extend to the
+       end of the line.
+
+   The CLASSES Section
+       A CLASSES section begins with  the  word  CLASSES  at  the
+       start  of  a  line  in all upper case. Each following line
+       until the start of a new section or the end  of  the  file
+       consists  of  a  sequence  of  words  separated by tabs or
+       spaces. Each line defines a class of ttys  and  host  pat-
+       terns.
+
+       The  word  at the beginning of a line becomes defined as a
+       collective name for the ttys and host  patterns  specified
+       at  the rest of the line. This collective name can be used
+       in any subsequent GROUPS or USERS section. No  such  class
+       name  must  occur  as part of the definition of a class in
+       order to avoid problems with recursive classes.
+
+       An example CLASSES section:
+
+       CLASSES
+       myclass1       tty1 tty2
+       myclass2       tty3 @.foo.com
+
+       This defines the classes myclass1 and myclass2 as the cor-
+       responding right hand sides.
+
+   The GROUPS Section
+       A  GROUPS  section defines allowed ttys and hosts on a per
+       Unix group basis. If a user is a member of  a  Unix  group
+       according  to  /etc/passwd and /etc/group and such a group
+       is mentioned in a GROUPS section in /etc/usertty then  the
+       user is granted access if the group is.
+
+       A  GROUPS section starts with the word GROUPS in all upper
+       case at the start of a line, and each following line is  a
+       sequence  of  words separated by spaces or tabs. The first
+       word on a line is the name of the group and  the  rest  of
+       the  words  on the line specifies the ttys and hosts where
+       members of that group are allowed access. These specifica-
+       tions  may  involve the use of classes defined in previous
+       CLASSES sections.
+
+       An example GROUPS section.
+
+       GROUPS
+       sys       tty1 @.bar.edu
+       stud      myclass1 tty4
+
+       This example specifies that members of group sys  may  log
+       in  on tty1 and from hosts in the bar.edu domain. Users in
+       group stud may log in from  hosts/ttys  specified  in  the
+       class myclass1 or from tty4.
+
+   The USERS Section
+       A  USERS  section  starts with the word USERS in all upper
+       case at the start of a line, and each following line is  a
+       sequence  of  words separated by spaces or tabs. The first
+       word on a line is a username and that user is  allowed  to
+       log  in  on  the  ttys and from the hosts mentioned on the
+       rest of the line. These specifications may involve classes
+       defined  in  previous  CLASSES  sections.   If  no section
+       header is specified at the top of the file, the first sec-
+       tion defaults to be a USERS section.
+
+       An example USERS section:
+
+       USERS
+       zacho          tty1 @130.225.16.0/255.255.255.0
+       blue      tty3 myclass2
+
+       This lets the user zacho login only on tty1 and from hosts
+       with   IP   addreses   in   the   range   130.225.16.0   -
+       130.225.16.255,  and  user  blue is allowed to log in from
+       tty3 and whatever is specified in the class myclass2.
+
+       There may be a line in a USERS  section  starting  with  a
+       username  of  *.  This  is  a  default rule and it will be
+       applied to any user not matching any other line.
+
+       If both a USERS line and GROUPS line match a user then the
+       user   is  allowed  access  from  the  union  of  all  the
+       ttys/hosts mentioned in these specifications.
+
+   Origins
+       The tty and host pattern specifications used in the speci-
+       fication of classes, group and user access are called ori-
+       gins. An origin string may have one of these formats:
+
+       o      The name of a tty device without the /dev/  prefix,
+              for example tty1 or ttyS0.
+
+       o      The  string  @localhost,  meaning  that the user is
+              allowed to telnet/rlogin from the local host to the
+              same host. This also allows the user to for example
+              run the command: xterm -e /bin/login.
+
+       o      A domain name suffix such  as  @.some.dom,  meaning
+              that the user may rlogin/telnet from any host whose
+              domain name has the suffix .some.dom.
+
+       o      A range of IPv4 addresses, written @x.x.x.x/y.y.y.y
+              where x.x.x.x is the IP address in the usual dotted
+              quad decimal notation, and y.y.y.y is a bitmask  in
+              the  same  notation  specifying  which  bits in the
+              address to compare  with  the  IP  address  of  the
+              remote          host.          For          example
+              @130.225.16.0/255.255.254.0 means that the user may
+              rlogin/telnet  from any host whose IP address is in
+              the range 130.225.16.0 - 130.225.17.255.
+
+       Any of the above origins may be prefixed by a time  speci-
+       fication according to the syntax:
+
+       timespec    ::= '[' <day-or-hour> [':' <day-or-hour>]* ']'
+       day         ::= 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun'
+       hour        ::= '0' | '1' | ... | '23'
+       hourspec    ::= <hour> | <hour> '-' <hour>
+       day-or-hour ::= <day> | <hourspec>
+
+       For  example,  the  origin  [mon:tue:wed:thu:fri:8-17]tty3
+       means that log in is allowed on  mondays  through  fridays
+       between 8:00 and 17:59 (5:59 pm) on tty3.  This also shows
+       that an hour range a-b includes all moments  between  a:00
+       and  b:59.  A single hour specification (such as 10) means
+       the time span between 10:00 and 10:59.
+
+       Not specifying any time prefix for a tty or host means log
+       in  from  that  origin  is allowed any time. If you give a
+       time prefix be sure to specify both a set of days and  one
+       or more hours or hour ranges. A time specification may not
+       include any white space.
+
+       If no default rule is given then users  not  matching  any
+       line  /etc/usertty  are allowed to log in from anywhere as
+       is standard behavior.
+
+
+!! NOTE THAT THE NETWORK-STUFF IS NOT YET SUPPORTED BY FANCYLOGIN !!
+
+********************************************************************
+
 If you have any more questions concerning the configuration
 or technical details, or if you just want to give feedback,
 you can contact me using E-Mail:
