@@ -20,18 +20,20 @@
 
 
 
-#include "fancy.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <pwd.h>
 #include <sys/types.h>
+#include <shadow.h>
+#include <utmp.h>
+
+#include "definitions.h"
+#include "fancy.h"
 
 #define __LEN_USERNAME__ 20
 #define __LEN_PASSWORD__ 10
 
-#define TRUE 1
-#define FALSE 0 
 
 
 
@@ -42,7 +44,7 @@
 /******************************************************************************/
 
 int
-auth_normal (char *salt, char *clear)
+auth_normal (struct passwd *passwd, char *clear)
 {
   /*
    * crypt the cleartext-password
@@ -50,7 +52,8 @@ auth_normal (char *salt, char *clear)
    * see if it's the same as entered
    */ 
 
-  return (strcmp ((char *)crypt(clear, salt), salt) == 0);
+  return (strcmp ((char *)crypt(clear, passwd->pw_passwd), passwd->pw_passwd)
+          == 0);
 }
 
 
@@ -62,15 +65,12 @@ auth_normal (char *salt, char *clear)
 /******************************************************************************/
 
 int
-auth_shadow (char *passwd, char *password)
+auth_shadow (struct passwd *passwd, char *clear)
 {
-  /*
-   * TODO: ADD SUPPORT FOR SHADOWED LOGINS
-   */ 
-
-  return FALSE;
+  struct spwd *entry;
+  entry = getspnam (passwd->pw_name);
+  return (strcmp ((char *)crypt(clear, entry->sp_pwdp), entry->sp_pwdp) == 0);
 }
-
 
 
 /******************************************************************************/
@@ -128,10 +128,13 @@ authenticated (char *username, char *password)
    * is the password correct?
    */
 
-  if (auth_normal (passwd_entry->pw_passwd, password))
-    return passwd_entry;
-  else
-    if (auth_shadow (passwd_entry->pw_passwd, password))
+  if (strcmp(passwd_entry->pw_passwd,"x")==0)  /* Do we use shadow? */
+    {                                          /* -> yes? */
+      if (auth_shadow (passwd_entry, password))
+        return passwd_entry;
+    }
+  else                                         /* -> no? */ 
+    if (auth_normal (passwd_entry, password))
       return passwd_entry;
 
 
@@ -195,7 +198,7 @@ getnewenv (struct passwd *user)
 
 
 /******************************************************************************/
-/* system_logon: log *user on to system                                       */
+/* system_logon: log user on to system                                        */
 /******************************************************************************/
 
 int
@@ -203,8 +206,29 @@ system_logon (struct passwd *user)
 {
   char **new_environment;
   int i;
+  struct utmp *utmpentry;
+
 
   printf("\fWelcome, %s!\nYou are being logged on...", user->pw_gecos);
+
+
+  /*
+   * Update utmp and wtmp entries
+   */
+
+  utmpentry = (struct utmp *) malloc (sizeof(struct utmp));
+  
+  utmpentry->ut_type = USER_PROCESS;                        /* type of login */ 
+  utmpentry->ut_pid = getpid ();                                  /* our pid */
+  strcpy (utmpentry->ut_user, user->pw_name);                    /* username */
+  time (&(utmpentry->ut_tv.tv_sec));                         /* current time */
+  sscanf (ttyname(0), "/dev/%s", utmpentry->ut_line);                /* line */
+
+  /* I don't care about that remote-login stuff, because */
+  /* fancylogin is not supposed to be used for that. */
+
+  updwtmp ("/var/log/wtmp", utmpentry);  
+  pututline (utmpentry);  
 
 
   /*
@@ -253,7 +277,7 @@ main (void)
 
   struct passwd *user;
 
-  printf ("This is fancylogin 0.99.1 (http://fancylogin.cjb.net).\n\n");
+  printf ("This is fancylogin 0.99.3 (http://fancylogin.cjb.net).\n\n");
   sleep (1);
   
   initialize_prompt ();

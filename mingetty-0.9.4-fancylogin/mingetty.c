@@ -376,7 +376,6 @@ int main (int argc, char **argv)
 	/* flush input and output queues, important for modems */
 	ioctl (0, TCFLSH, 2);
 
-        printf("AHA!\n\n");
 	execl (_PATH_LOGIN, _PATH_LOGIN, NULL);
 	error ("%s: can't exec " _PATH_LOGIN ": %s", tty, sys_errlist[errno]);
 	exit (0);

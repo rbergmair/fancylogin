@@ -20,10 +20,10 @@
 
 
 
+#include "definitions.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <curses.h>
-
 #include <signal.h>
 
 
@@ -68,47 +68,6 @@ scanline(FILE *infile, char *line)
 
   line[i]=0;                   /* and terminate the string. */
   return TRUE;
-}
-
-
-
-/******************************************************************************/
-/* getp: reads char *line, and puts each value, divided by blanks into the    */
-/*       string-array char **params.                                          */
-/******************************************************************************/
-
-static int
-getp(char *line, char **params)
-{
-  int i=0;    /* index to go through char *line         */
-  int x;      /* index to go through char *params[pnum] */
-  int pnum;   /* counts number of parameter             */ 
-
-  for(pnum=0;;pnum++)
-    {
-      /*************************************/
-      /* go to first character after value */
-      /* and write down the value to ch    */
-      /*************************************/    
-      x = 0;
-      while ((line[i]!=' ') && (line[i]!=0)) /* while you don't find ' 'or\0 */
-        {
-          params[pnum][x]=line[i];       /* put the character to params[pnum] */
-          i++;                           /* and increment the indices */
-          x++;
-        }
-      params[pnum][x]=0;   /* terminate params[pnum] with a '\0' */
-      if (line[i]==0)          /* if we had to break because were done  */
-        return pnum+1;         /* return the number of parameters found */
-
-      /********************/
-      /* go to next value */
-      /********************/
-      while ((line[i]==' ') && (line[i]!=0))
-        i++;
-      if (line[i]==0)
-        return pnum+1;
-    }
 }
 
 
@@ -177,20 +136,9 @@ process_config(void)
   FILE *configuration;    /* configuration-file handler            */
   char line[100];         /* buffer to take the input line by line */
   int i;                  /* counter                               */
-  char **paramlist;       /* parameter-list returned by getp       */
-
-
-  /*
-   * allocate memory for the parameter-array
-   * and return -1 if it fails.
-   */
-
-  if ((paramlist=(char **)malloc(10*sizeof(char *)))==NULL)
-    return -1;
-  for (i=0;i<10;i++)
-    if ((paramlist[i]=(char *)malloc(100*sizeof(char)))==NULL)
-      return -1;
-
+  int no;                 /* Number                                */
+  char foreg[10];         /* Foreground                            */
+  char backg[10];         /* Background                            */ 
 
   /*
    * open the configuration.
@@ -214,31 +162,20 @@ process_config(void)
       switch (line[0])
         {
            /* color ****************************************************/
-           case 'c' : getp(line, paramlist);
-                      setc(atoi(paramlist[1]),paramlist[2],paramlist[3]);
-                      break;
+           case 'c' : sscanf (line+5, " %d %s %s", &no, foreg, backg);
+                      setc (no, foreg, backg);
+                      break; 
 
            /* username *************************************************/
-           case 'u' : getp(line, paramlist);
-                      uyc = atoi(paramlist[1]);
-                      uxc = atoi(paramlist[2]);
-                      unc = atoi(paramlist[3]);
-                      umc = atoi(paramlist[4]);
+           case 'u' : sscanf (line+8, " %d %d %d %d", &uyc, &uxc, &unc, &umc);
                       break;
 
            /* password *************************************************/  
-           case 'p' : getp(line, paramlist);
-                      pyc = atoi(paramlist[1]);
-                      pxc = atoi(paramlist[2]);
-                      pnc = atoi(paramlist[3]);
-                      pmc = atoi(paramlist[4]);
+           case 'p' : sscanf (line+8, " %d %d %d %d", &pyc, &pxc, &pnc, &pmc);
                       break;
 
            /* failure **************************************************/  
-           case 'f' : getp(line, paramlist);
-                      fyc = atoi(paramlist[1]);
-                      fxc = atoi(paramlist[2]);
-                      fmc = atoi(paramlist[3]);
+           case 'f' : sscanf (line+7, " %d %d %d", &fyc, &fxc, &fmc);
                       break;
         }
 
@@ -386,18 +323,22 @@ fail_login(void)
   int xp;
   int yp;
 
+
   /*
    * open the configuration file
    */
+
   if ((failmsg = fopen("/etc/signon.fail","r")) == NULL)
     {
       fprintf (stderr, "Could not open /etc/signon.fail\n");
       return -1;
     }
 
+
   /*
    * set attributes for error-message
    */
+
   attrset(COLOR_PAIR(fmc));
 
   xp=fxc;
@@ -418,19 +359,25 @@ fail_login(void)
          }
     }
 
+
   /*
    * Close the file
    */
+
   fclose(failmsg);  
+
 
   /*
    * Display the new screen
    */
+
   refresh ();
+
 
   /*
    * Wait for the user to press a key
    */
+
   getch ();
 
 
