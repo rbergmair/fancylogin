@@ -1,0 +1,85 @@
+Fancy-login provides a very big set of options, to set
+the look and feel of you personal login-screen.
+
+The configuration uses 4 files:
+/etc/signon.colors
+/etc/signon.defs
+/etc/signon.fail
+/etc/signon.text
+
+let's begin with
+
+**********************
+/etc/signon.defs
+**********************
+
+here is a sample signon.defs:
+-------------------------------------------------------------
+color        2        WHITE       RED
+color        1        WHITE       BLUE
+color        0        WHITE       BLACK
+
+username    15        57          10                      1
+password    18        57          10                      1
+failure     6         32          2
+--------------------------------------------------------------
+
+the first three statements (beginning with "color") create
+the curses-color-pairs, and assign them to a number.
+The first parameter, we give on that line is the number,
+to assign the color-pair to, the second parameter is the
+foreground-color, the third parameter is the background-color.
+We will discuss the use of those numbers, and the assigned
+colors later in this document.
+
+the next statement is the username-statement. This just defines
+some parameters we need for the username-input-mask. The first
+parameter is the y-coordinate of the mask, the second one is
+the x-coordinate, the third one is the number of characters, to
+be accepted and the fourth is the color, to use for the mask.
+
+the password-statement is the same as the username-statement,
+just it belongs to the password-mask.
+
+failure defines the position and color-pair to use for the box,
+that is displayed, when a login fails. The first parameter is
+the y-coordinate again, and the second one the x-coordinate. The
+last number is the color-pair to use for displaying it.
+
+
+
+*****************
+/etc/signon.text
+*****************
+
+is a text-file that is displayed for the login.
+NOTE THAT THIS FILE HAS TO HAVE 25*80 CHARACTERS! Therefore
+you should fill out the space you don't need with blanks.
+
+
+
+*******************
+/etc/signon.colors
+*******************
+
+also has 25*80 characters. Each character is the number
+of a color-pair you want to be displayed at the position, of
+the screen, where you put it in textfile. This sounds a
+little bit complicated, but isn't. Just look at the sample
+configuration, and you'll understand.
+
+
+
+*****************
+/etc/signon.fail
+*****************
+
+Is a textfile, that contains the text to be displayed
+in the messagebox for failed logins.
+
+
+If you have any more questions concerning the configuration
+or technical details, or if you just want to give feedback,
+you can contact me using E-Mail:
+
+richard_bergmair@gmx.at

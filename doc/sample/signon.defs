@@ -1,0 +1,22 @@
+# a leading hash marks a comment.
+
+############################################################################
+#    Color No.            Foregroundcolor            Backgroundcolor       #
+############################################################################
+color        2            WHITE                      RED
+color        1            WHITE                      BLUE
+color        0            WHITE                      BLACK
+
+
+###########################################################################
+#                                 number of characters    color of        #
+#           Y-Coord   X-Coord     to be accepted          inputmask       #
+###########################################################################
+username    15        57          10                      1
+password    18        57          10                      1
+
+
+############################################################
+#           Y-Coord   X-Coord     color of failure-message #
+############################################################
+failure     6         32          2
