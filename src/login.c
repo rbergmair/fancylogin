@@ -1,4 +1,5 @@
 /* login.c  -- fancylogin-login program.
+
                fancylogin uses ncurses to display a colorful login-
                screen with input-masks.
 
@@ -28,12 +29,37 @@
 #include <sys/types.h>
 #include <shadow.h>
 #include <utmp.h>
+#include <syslog.h>
+#include <time.h>
 
 #include "definitions.h"
 #include "fancy.h"
 
 #define __LEN_USERNAME__ 20
 #define __LEN_PASSWORD__ 10
+
+#define check(checkfor) \
+{ \
+  if (checkfor == NULL) \
+    { \
+      log_message (2, "Out of memory, executing emergency login (/bin/login)");\
+      for (;;) \
+        { \
+          execl ("/bin/login", "/bin/login", NULL); \
+          log_message (1, "Because I ran out of memory, I tried to execute the \
+                           emergency login (/bin/login), which failed."); \
+          sleep (5*60); \
+        } \
+    } \
+}
+
+#define ACCESS_GRANTED() \
+{ \
+  dispose_section (users); \
+  dispose_section (groups); \
+  dispose_section (classes); \
+  return TRUE; \
+}
 
 
 
@@ -65,6 +91,103 @@ struct passwd *authenticated (char *username, char *password);
 char **getnewenv (struct passwd *user);
 int system_logon (struct passwd *user);
 
+
+
+int
+log_message (int msgid, char *msg)
+{
+  char message[256];
+  char xmessage[256];
+  char line[256];
+  char msgtype[10];
+  char logtype[10];
+  char logarg[256];
+  char st1[256];
+  char st2[256];
+  char smsgarg[256];
+  char chtime[50];
+  int msgarg;
+  int fmsgid;
+  time_t xxtime;
+  
+  FILE *logging;
+  FILE *logfile;
+
+  switch ((int)(msgid / 10000))
+    {
+      case 0: sprintf(message, "FATAL ERROR: %s", msg);     break;
+      case 1: sprintf(message, "NON-FATAL ERROR: %s", msg); break;
+      case 2: sprintf(message, "FAILED LOGINS: %s", msg);   break;
+      case 3: sprintf(message, "ACCESS GRANTED: %s", msg);  break;
+      case 4: sprintf(message, "ACCESS DENIED: %s", msg);   break;
+      default: sprintf(message, "OOPS #001");
+    }
+
+
+  if ((logfile = fopen ("/var/log/login/all", "at")) == NULL)
+    return FALSE;
+  fprintf (logfile, "%s\n", message);
+    fclose (logfile);
+
+  if ((logging = fopen ("/etc/login.logging","r")) == NULL)
+    {
+      if ((int)(msgid / 10000) == 0)
+        fprintf(stderr, "%s", message);
+      return FALSE;
+    }
+
+  while (!(feof(logging)))
+    {
+      if (fgets(line, sizeof (line), logging) == NULL)
+        break;
+
+      sscanf (line, "%s %d %s %s", msgtype, &msgarg, logtype, logarg);
+
+      fmsgid = 0;
+
+      if (strcmp(msgtype, "FATAL") == 0)
+        fmsgid = 0;
+      if (strcmp(msgtype, "NONFATAL") == 0)
+        fmsgid = 10000;
+      if (strcmp(msgtype, "FAILED") == 0)
+        fmsgid = 20000;
+      if (strcmp(msgtype, "GRANTED") == 0)
+        fmsgid = 30000;
+      if (strcmp(msgtype, "DENIED") == 0)
+        fmsgid = 40000;
+
+      fmsgid+=msgarg;
+
+      if (fmsgid == msgid)
+        {
+          if (strcmp (logtype, "FILE") == 0)
+            {
+              time (&xxtime);
+              strcpy (chtime, ctime(&xxtime));
+              chtime[strlen(chtime)-1] = '\0';
+              sprintf (xmessage, "login from %s on %s: %s", ttyname(0),
+                       chtime, message);
+              if ((logfile = fopen (logarg, "at")) == NULL)
+                  break;
+              fprintf (logfile, "%s\n", xmessage);
+              fclose (logfile);
+            }
+          if (strcmp (logtype, "SYSLOG") == 0)
+            {
+              sprintf (xmessage, "from %s: %s", ttyname(0), message);
+              openlog ("fancylogin", 0, atoi(logarg));
+              if ((int)(msgid / 10000)==0)
+                syslog (LOG_CRIT, "%s\n", xmessage);
+              else
+                syslog (LOG_INFO, "%s\n", xmessage);
+              closelog ();
+            }
+          break;
+        }
+    }
+
+  return TRUE;  
+}
 
 
 /******************************************************************************/
@@ -113,6 +236,10 @@ root_allowed (void)
 {
   FILE *securetty;
   char line[10];
+  char linec[10];
+  char tty[10];
+
+  sscanf (ttyname(0), "/dev/%s", tty);
 
   if ((securetty = fopen("/etc/securetty","r")) == NULL)
     return TRUE;
@@ -122,7 +249,9 @@ root_allowed (void)
       if ((fgets (line, sizeof (line), securetty)) == NULL)
         break;
 
-      if (strcmp(line, ttyname(0))==0)
+      sscanf (line, "%s", linec);
+
+      if (strcmp(linec, tty)==0)
         {
           fclose (securetty);
           return TRUE;
@@ -178,6 +307,7 @@ process_section (FILE *usertty)
 
           /* add a new item to the list */
           section_buf = (struct sections *) malloc (sizeof (struct sections));
+          check (section_buf);
           section_buf->next = section_first;
           section_first = section_buf;
 
@@ -192,6 +322,7 @@ process_section (FILE *usertty)
               /* add a new member to the memberlist */
               sectionmember_buf = (struct sectionmember *)
                                    malloc (sizeof (struct sectionmember));
+              check (sectionmember_buf);
               sectionmember_buf->next = sectionmember_first;
               sectionmember_first = sectionmember_buf;
 
@@ -264,7 +395,7 @@ time_ok (char *allowed)
 
 
 /******************************************************************************/
-/* user_allowed: checks wheather /etc/usertty allows to log on to system.     */
+/* dispose_section: frees the memory for the section                          */
 /******************************************************************************/
 
 void
@@ -327,7 +458,6 @@ user_allowed (struct passwd *user)
   strcpy (username, user->pw_name);
 
 
-
   /*
    * Is the user mentioned, or do we have to apply
    * default rules?
@@ -354,8 +484,8 @@ user_allowed (struct passwd *user)
               if (strcmp (cur1->sectionname, "*") == 0)
                 break;
 
-            if (cur1==NULL) /* no default rule means standard behavior, */
-              goto access_granted;  /* which is letting the user pass. */
+            if (cur1==NULL)       /* no default rule means standard behavior, */
+              ACCESS_GRANTED ()   /* which is letting the user pass. */
             else
               {
                 username[0] = '*';
@@ -377,14 +507,14 @@ user_allowed (struct passwd *user)
       for (cur2=cur1->members;cur2!=NULL;cur2=cur2->next)
         if ((strcmp (terminal, cur2->membername) == 0) &&
             time_ok (cur2->membertime))
-          goto access_granted;
+          ACCESS_GRANTED ()
         else
           for (cur3=classes;cur3!=NULL;cur3=cur3->next)
             if (strcmp (cur2->membername, cur3->sectionname) == 0)
               for (cur4=cur3->members;cur4!=NULL;cur4=cur4->next)
                 if ((strcmp (terminal, cur4->membername) == 0) &&
                     time_ok (cur4->membertime))
-                  goto access_granted;
+                  ACCESS_GRANTED ()
 
 
   /*
@@ -396,27 +526,19 @@ user_allowed (struct passwd *user)
       for (cur2=cur1->members;cur2!=NULL;cur2=cur2->next)
         if ((strcmp (terminal, cur2->membername) == 0) &&
             time_ok (cur2->membertime))
-          goto access_granted;
+          ACCESS_GRANTED ()
         else
           for (cur3=classes;cur3!=NULL;cur3=cur3->next)
             if (strcmp (cur2->membername, cur3->sectionname) == 0)
               for (cur4=cur3->members;cur4!=NULL;cur4=cur4->next)
                 if ((strcmp (terminal, cur4->membername) == 0) &&
                     time_ok (cur4->membertime))
-                  goto access_granted;
+                  ACCESS_GRANTED ()
 
-  access_denied:
-    dispose_section (users);
-    dispose_section (groups);
-    dispose_section (classes);
-    return FALSE;
-
-  access_granted:
-    dispose_section (users);
-    dispose_section (groups);
-    dispose_section (classes);
-    return TRUE;
-
+  dispose_section (users); 
+  dispose_section (groups); 
+  dispose_section (classes); 
+  return FALSE;
 }
 
 
@@ -431,6 +553,7 @@ struct passwd *
 authenticated (char *username, char *password)
 {
   struct passwd *passwd_entry;
+  char errormessage [256];
 
   /*
    * if (((strcmp (username, "DMR"))==0) && (strcmp (password, "ABCD") == NULL))
@@ -453,7 +576,12 @@ authenticated (char *username, char *password)
    */ 
 
   if ((passwd_entry = getpwnam (username)) == NULL)
-    return NULL;
+    {
+      sprintf (errormessage, "%s is not known to the system!", username);
+      log_message (49998, errormessage);
+      log_message (49999, errormessage);
+      return NULL;
+    }
 
 
   /*
@@ -461,8 +589,13 @@ authenticated (char *username, char *password)
    * to log on to ?
    */
 
-  if ((passwd_entry->pw_uid==0) && !(root_allowed))
-    return NULL;
+  if ((passwd_entry->pw_uid==0) && !(root_allowed()))
+    {
+      sprintf (errormessage, "accorting to /etc/securetty root is not allowed to log here");
+      log_message (40000, errormessage); 
+      log_message (49999, errormessage); 
+      return NULL;
+    }
 
  
   /*
@@ -470,7 +603,12 @@ authenticated (char *username, char *password)
    */ 
 
   if ((passwd_entry->pw_passwd[0])=='!')
-    return NULL;
+    {
+      sprintf (errormessage, "%s is locked", passwd_entry->pw_name);
+      log_message (40000+passwd_entry->pw_uid, errormessage);
+      log_message (4999, errormessage);
+      return NULL;
+    }
 
 
   /*
@@ -479,7 +617,12 @@ authenticated (char *username, char *password)
    */
 
   if ((passwd_entry->pw_uid != 0) && (!(user_allowed (passwd_entry))))
-    return NULL;
+    {
+      sprintf (errormessage, "according to /etc/usertty %s is not allowed to log on here.", passwd_entry->pw_name);
+      log_message (40000+passwd_entry->pw_uid, errormessage);
+      log_message (49999, errormessage);
+      return NULL;
+    }
 
 
   /*
@@ -487,7 +630,12 @@ authenticated (char *username, char *password)
    */
 
   if (passwd_entry->pw_passwd[0]=='\0')
-    return passwd_entry;
+    {
+      sprintf (errormessage, "%s logged in", passwd_entry->pw_name);
+      log_message (30000+passwd_entry->pw_uid, errormessage);
+      log_message (39999, errormessage);
+      return passwd_entry;
+    }
 
 
   /*
@@ -497,13 +645,26 @@ authenticated (char *username, char *password)
   if (strcmp(passwd_entry->pw_passwd,"x")==0)  /* Do we use shadow? */
     {                                          /* -> yes? */
       if (auth_shadow (passwd_entry, password))
-        return passwd_entry;
+        {
+          sprintf (errormessage, "%s logged in", passwd_entry->pw_name);
+          log_message (30000+passwd_entry->pw_uid, errormessage);
+          log_message (39999, errormessage);
+          return passwd_entry;
+        }
     }
   else                                         /* -> no? */ 
     if (auth_normal (passwd_entry, password))
-      return passwd_entry;
+      {
+        sprintf (errormessage, "%s logged in", passwd_entry->pw_name);
+        log_message (30000+passwd_entry->pw_uid, errormessage);
+        log_message (39999, errormessage);
+        return passwd_entry;
+      }
 
 
+  sprintf (errormessage, "%s entered a wrong password", passwd_entry->pw_name);
+  log_message (40000+passwd_entry->pw_uid, errormessage);
+  log_message (49999, errormessage);
   return NULL;
 }
 
@@ -532,18 +693,14 @@ getnewenv (struct passwd *user)
 
   char **ne;
 
-  if ((ne = (char **)malloc( sizeof(char *) * (__NUM_VARIABLES__+1))) == NULL)
-    {
-      fprintf (stderr, "Error allocating memory!\n");
-      return NULL;
-    }
+  ne = (char **)malloc( sizeof(char *) * (__NUM_VARIABLES__+1));
+  check (ne);
 
   for (i=0;i<7-1;i++)
-    if ((ne[i] = (char *)malloc(sizeof(char) * __MAX_STR_LEN__+1)) == NULL)
-      {
-        fprintf (stderr, "Error allocating memory!\n");
-        return NULL;
-      }
+    {
+      ne[i] = (char *)malloc(sizeof(char) * (__MAX_STR_LEN__+1));
+      check (ne[i]);
+    }
 
 
   /*
@@ -583,6 +740,7 @@ system_logon (struct passwd *user)
    */
 
   utmpentry = (struct utmp *) malloc (sizeof(struct utmp));
+  check (utmpentry);
   
   utmpentry->ut_type = USER_PROCESS;                        /* type of login */ 
   utmpentry->ut_pid = getpid ();                                  /* our pid */
@@ -640,21 +798,29 @@ main (void)
 {
   char username[__LEN_USERNAME__+1];  
   char password[__LEN_PASSWORD__+1];
+  char errormsg[256];
+
+  int cntwrong = 0;
 
   struct passwd *user;
 
-  printf ("This is fancylogin 0.99.4 (http://fancylogin.cjb.net).\n\n");
+  printf ("This is fancylogin 0.99.5 (http://fancylogin.cjb.net).\n\n");
   sleep (1);
-  
+
   initialize_prompt ();
 
   while (1)
     {
       fancy_prompt (username, password);
-      if (!((user = authenticated (username, password))==NULL))
+
+      if ((user = authenticated (username, password))!=NULL)
         break;
       else
         fail_login ();
+
+      cntwrong++;
+      sprintf (errormsg, "login failed %d times", cntwrong);
+      log_message (20000+cntwrong, errormsg);
     }
   
   close_prompt ();

@@ -1,5 +1,5 @@
 CC=cc
-CFLAGS=
+CFLAGS=-ggdb
 LDFLAGS=
 LIBS=/usr/lib
 LIBNCURSES=$(LIBS)/libncurses.so
@@ -11,19 +11,19 @@ all: fancy.o login.o link install sampleconf
 try: fancy.o login.o link
 
 fancy.o:
-	$(CC) -c fancy.c
+	$(CC) -c -ggdb fancy.c
 
 login.o: 
-	$(CC) -c login.c
+	$(CC) -c -ggdb login.c
 
 link:
-	$(CC) fancy.o login.o $(LIBNCURSES) $(LIBCRYPT) -o fancylogin
+	$(CC) -ggdb fancy.o login.o $(LIBNCURSES) $(LIBCRYPT) -o fancylogin
 
 install:
 	cp fancylogin $(BINDIR)
 
 sampleconf:
-	cp ../doc/sample/* /etc
+	cp ../doc/sample/signon.* /etc
 
 clean:
 	rm fancy.o

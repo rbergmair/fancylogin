@@ -266,6 +266,82 @@ SPECIAL ACCESS RESTRICTIONS
 
 !! NOTE THAT THE NETWORK-STUFF IS NOT YET SUPPORTED BY FANCYLOGIN !!
 
+
+fancylogin also has got some really nifty loggin capabilities. These
+are configured via
+
+
+*******************
+/etc/login.logging
+*******************
+
+lets have a look at a standard login.logging:
+
+--------------------------------------------------
+FATAL 1       FILE /var/log/login/FATAL1.log
+FATAL 2       SYSLOG 1002
+NONFATAL 1    FILE /var/log/login/NONFATAL1.log
+NONFATAL 2    SYSLOG 1002
+NONFATAL 3    SYSLOG 1003
+FAILED 3      SYSLOG 2003
+FAILED 5      FILE /var/log/login/FIVEWRONG.log
+FAILED 10     SYSLOG 2010
+GRANTED 0     FILE /var/log/login/ROOTLOGINs.log
+GRANTED 501   SYSLOG 2501
+GRANTED 9999  FILE /var/log/login/allgranted.log
+DENIED 9999   FILE /var/log/login/alldenied.log
+DENIED 9998   FILE /var/log/login/UNKNOWN.log
+DENIED 0      FILE /var/log/login/ROOTDENIED.log
+---------------------------------------------------
+
+Each line in this file contains of four fields,
+seperated by spaces or tabs. The first two fields
+belong to the reason for logging, and the other
+two fields to where the log should be logged to.
+
+In the first line we've got
+FATAL 1 FILE /var/log/login/FATAL1.log
+
+which means an error of the type FATAL (which are
+fatal errors). The next field is the Argument to
+the type. For the type FATAL the arguments are
+
+1: SYSTEM-ERROR
+2: HARDWARE-ERROR
+3: CONFIGURATION-ERROR
+
+so FATAL 1 means FATAL SYSTEM-ERRORS. FATAL SYSTEM ERRORS
+are logged to FILE /var/log/login/FATAL1.log. This means...
+
+Errors can also be logged with SYSLOGD. To log something 
+using SYSLOG the third field is SYSLOG instead of FILE.
+The first Argument to syslog is not the filename, but the
+syslog-facility-id in decimal notation. For further information
+on syslog is refer to syslog(2), syslog(3), syslogd(9), and 
+syslog.conf(5).
+
+And here is an overview of possible values for FIELD1, and
+possible arguments
+
+FATAL    1 : FATAL SYSTEM ERROR
+         2 : FATAL HARDWARE ERROR
+         3 : FATAL CONFIGURATION ERROR
+
+NONFATAL 1 : NONFATAL SYSTEM ERROR
+         2 : NONFATAL HARDWARE ERROR
+         3 : NONFATAL CONFIGURATION ERROR
+
+FAILED   n : After "n" failed logins in one session this log is put out.
+
+GRANTED uid : Is put out if user with uid "uid" logs on.
+              a uid of 9999 means ALL users.
+
+DENIED uid :  Is put out if user with uid "uid" fails to log on.
+              a uid of 9999 means ALL users,
+              a uid of 9998 means UNKNOWN users.
+
+
+
 ********************************************************************
 
 If you have any more questions concerning the configuration

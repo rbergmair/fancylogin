@@ -1,0 +1,13 @@
+CLASSES
+EDVG tty2 tty4 tty6 tty8
+EDVU tty1 tty3 tty5 tty9
+
+GROUPS
+usersg EDVG
+usersu EDVU
+
+USERS
+user1 [mon:tue:8-17]tty2 tty4
+user2 tty1 tty3
+user3 EDVG
+*     tty2 
