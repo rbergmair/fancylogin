@@ -39,7 +39,7 @@ the x-coordinate, the third one is the number of characters, to
 be accepted and the fourth is the color, to use for the mask.
 
 the password-statement is the same as the username-statement,
-just it belongs to the password-mask.
+with the only difference, that it belongs to the password-mask.
 
 failure defines the position and color-pair to use for the box,
 that is displayed, when a login fails. The first parameter is
@@ -55,6 +55,17 @@ last number is the color-pair to use for displaying it.
 is a text-file that is displayed for the login.
 NOTE THAT THIS FILE HAS TO HAVE 25*80 CHARACTERS! Therefore
 you should fill out the space you don't need with blanks.
+
+to insert a hostname you can use a string like the followeing:
+
+%hhhhhhhhhhhhhhhh%
+
+the "h" stands for "hostname". possible values are:
+
+h  hostname
+t  terminal
+s  system-name
+m  type of machine
 
 
 
@@ -92,8 +103,6 @@ the following standard-files are NOT supported
 
 /etc/issue
 /etc/motd
-
-(didn't think so, eh'?)
 
 
 
@@ -264,7 +273,7 @@ SPECIAL ACCESS RESTRICTIONS
        is standard behavior.
 
 
-!! NOTE THAT THE NETWORK-STUFF IS NOT YET SUPPORTED BY FANCYLOGIN !!
+
 
 
 fancylogin also has got some really nifty loggin capabilities. These

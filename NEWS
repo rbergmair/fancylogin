@@ -1,0 +1,19 @@
+                       -----------------------------
+                            fancylogin 0.99.6
+
+                                    news
+                       -----------------------------
+
+
+I'm almost sure you don't know the old version
+fancylogin 0.99.5 (unless you're Andreas
+Krennmair or Jochen Landvoigt)
+
+fancylogin 0.99.6 supports
+
+- /etc/securetty
+- /etc/usertty
+- utmp/wtmp-logging
+- syslog-logging
+- logging to files
+- fancy logins

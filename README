@@ -1,145 +1,47 @@
-This is the README for the fancy-login:
-
-NOTE THAT FANCYLOGIN IS NOT COMPATIBLE WITH NORMAL LOGIN. UNDER NO
-CIRCUMSTANCES REPLACE YOU EXISTING LOGIN BY THE FANCY-LOGIN. FANCY-
-LOGIN WILL ONLY WORK ON VIRTUAL TTYs (/dev/tty??) DO NOT USE IT FOR
-MODEMS, TELNET OR SOMETHING LIKE THAT!
-
-AT THIS POINT OF DEVELOPMENT FANCYLOGIN IS ABSOLUTELY INSECURE. DO
-NOT USE IT IF IT IS IMPORTANT FOR YOUR SYSTEM TO SUPPORT VERY SECURE
-LOGINS ON VIRTUAL TERMINALS. NOTHING IS LOGGED, NOT ERROR MESSAGES
-ARE DISPLAYED, OR SENT VIA SYSLOG!
+fancylogin 0.99.6
 
 
+**************************************************************
 
-********************************************************************************
-WHAT IS FANCYLOGIN AND WHAT CAN I USE IT FOR?
-********************************************************************************
+W E L C O M E   T O   F A N C Y - L O G I N
 
-Fancylogin is an ncurses-powered login-program, that creates
-very colorful and high-configurable login-screens with inputmasks.
-Although it works with telnet, never use it with network-services,
-and under no circumstances replace your old login-program with fancylogin.
-Fancylogin is supposed to be an addition to your normal login program.
-It has no security-capabilities. It doesn't log anything, it doesn't
-send error-messages through syslog, actually it does nothing than prompt
-for a username/password pair, and log you in if it is correct. We are
-planning to add support for syslogd, so fancylogin gets a little bit better.
-The code is not very robust at this time of development, but it works.
+                       +
+                       +
+                +++++++++++++++++++++++++++++++++++++++++++++
+   .~.          +      +
+   /V\     +++++++++++++
+  /   \         +            please log in:
+ /(   )\        +            ########################
+  ^`~'          +
+                +            password:
+                +            ########################
+                +
+
+**************************************************************
 
 
 
-********************************************************************************
-DEPENDENCIES
-********************************************************************************
+fancylogin is one of the most powerful login-programs
+available for LINUX, and UNIXes generally. fancylogin
+can do everything your old login program can do (supports
+shadow-passwords, user-time-terminal/network-verification
+as done with HP-UX-login (/etc/usertty, /etc/securetty),
+and adds a lot of capabilities for logging and draws
+login-masks that are REALLY FANCY (didn't think so, eh')!
 
-The fancy-login login-program requires the ncurses-libraries and
-the standard libc.
+in version 0.99.6 we are not yet able to "revolutionize"
+everything you know about logins, but we have lots of
+plans on doing so! (see the file ROADMAP for
+future-functionality), so I'm sure this isn't the last
+you've heard about fancylogin.
 
+the file INSTALL describes the basic installation procedure,
+follow its instructions, and nothing can actually happen!
 
+NOTE THAT FANCYLOGIN IS NOT COMPATIBLE TO NORMAL login. 
+DO NOT REPLACE YOUR NORMAL LOGIN BY FANCYLOGIN. FANCYLOGIN
+SHOULD BE USED IN ADDITION TO YOUR NORMAL LOGIN!
 
-********************************************************************************
-INSTALLATION
-********************************************************************************
-
-First you have to compile the sources. This is done by doing "make"
-in ./src
-
----------------------
-cd src
-make
-cd ..
----------------------
-
-now youve got a file ./fancylogin and /bin/fancylogin
-
-IMPORTANT: TRY OUT FANCYLOGIN BEFORE PROCEEDING WITH THE INSTALLATION!
-this is done by just typing
-
----------------------
-fancylogin
----------------------
-
-try logging in with an existing username, with one that doesn't exist,
-try out root-login, and non-root-logins, try typing correct and incorrect
-passwords. If everything is functioning correctrly, proceed with the
-installation, else send a report to the authors mentioned below.
-
-Now you need a modified getty for your virtual-terminals, that doesn't
-prompt for a username, and that executes /bin/fancylogin instead of
-/bin/login. I've added a modified version of mingetty. just compile it by
-doing
-
-------------------------------
-cd mingetty-0.9.4-fancylogin
-make
-------------------------------
-
-I haven't added installation of the binary to the Makefile, because
-I want you to do this manually, so you know exactly, what is going
-on, because if it doesn't work you must know how to undo it.
-
-First try out the new binary by typing
-
------------
-./mingetty
------------
-
-If you get no error-message such as "Segmentation fault" or something
-like that, you can proceed:
-
-First rename your old mingetty, so you can restore it,
-if it doesn't work:
-
----------------------------------------
-mv /sbin/mingetty /sbin/mingetty.old
----------------------------------------
-
-Now copy the new mingetty to your sbin folder:
-
--------------------
-cp mingetty /sbin
--------------------
-
-DO NOT LOG OUT YET!
-
-Before logging out on the terminal you are currently
-working on, log in and out again on another virtual
-terminal.
-
-If you get a fancylogin-prompt now, the
-installation was successful, and you can log in and
-out on all consoles, or just reboot the system.
-
-* If you don't get a fancylogin-prompt restore
-* the old mingetty, by typing
-*
-* -------------------------------------
-* rm /sbin/mingetty
-* mv /sbin/mingetty.old /sbin/mingetty
-* -------------------------------------
-*
-* and send a bug-report to the authors mentioned below.
-
-
-
-********************************************************************************
-LICENSE
-********************************************************************************
-
-fancylogin - login program which displays really fancy login screens
-Copyright 2000 by Richard Bergmair
-
-This program is free sofware, you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Sofware Foundation; either version 2
-of the Livense, or (at your opinion) any later version.
-
-This program is distributed in the hope that it might be useful
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public LIcense for more details.
-
-You should have recieved a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+(It would also be a good idea to use fancylogin for telnet
+just add "-L /bin/fancylogin" to whatever starts in.telnetd
+(usually in inetd.conf or an init-script).)

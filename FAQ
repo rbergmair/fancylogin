@@ -1,0 +1,13 @@
+                       -----------------------------
+                            fancylogin 0.99.6
+
+                                    FAQ
+                       -----------------------------
+
+
+Q: I've modified /etc/inittab to execute /bin/fancylogin,
+   but fancylogin only does weird stuff.
+A: You have to use a getty that executes /bin/fancylogin.
+   See the file INSTALL for exact installation-instructions.
+
+-- no other questions have been asked so far --

@@ -1,0 +1,90 @@
+                       -----------------------------
+                            fancylogin 0.99.6
+
+                           basic installation
+                               instructions
+                       -----------------------------
+
+
+
+--------------------------
+STEP 1: CHECK DEPENDENCIES
+--------------------------
+
+fancylogin needs the following libraries:
+
+- libcrypt
+- libncurses
+
+
+
+-------------------------
+STEP 2: MODIFY Makefile
+-------------------------
+
+look at the Makefile and change whatever you
+like, especially have a look at the first 7 lines.
+
+
+
+------------------------------------------
+STEP 3: MODIFY config.h AND environment.h
+------------------------------------------
+
+have a look at config.h and environment.h,
+the configuration options are explained in
+the files, themselves.
+
+
+
+------------------------------------------
+STEP 4: COMPILE THE LOGIN
+------------------------------------------
+
+go to the directory ./login and make all
+by doing "make clean all install". this
+installs the binary file "fancylogin" to
+your bindirectory.
+
+
+
+-----------------------------
+STEP 5: COMPILE THE MINGETTY
+-----------------------------
+
+now you have to tell your getty to execute
+/bin/fancylogin instead of /bin/login.
+you can use the mingetty-modification, I
+added: just make all by doing "make all install".
+This installs the file /sbin/mingetty.fancylogin.
+
+
+
+----------------------------
+STEP 6: MODIFY /etc/inittab
+----------------------------
+
+now you have to tell init to execute /sbin/mingetty.fancylogin
+instead of /sbin/mingetty or /sbin/getty, or whatever you
+used before. Open the file /etc/inittab, and replace a line,
+that looks like
+
+4:2345:respawn:/sbin/mingetty tty4
+
+or something like that by
+
+4:2345:respawn:/sbin/mingetty.fancylogin tty4
+
+for further information on /etc/inittab look at inittab(5)
+
+
+
+-----------------------------
+STEP 7: CONFIGURE FANCYLOGIN
+-----------------------------
+
+you could copy the files from ./doc/samples to
+/etc/ to get a basic configuration. I refer
+to the fancylogin-documentation you will find
+under ./doc/doc/CONFIGURATION for further
+information.
